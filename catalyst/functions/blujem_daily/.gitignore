@@ -1,0 +1,4 @@
+# Extraction results from the command-line test.
+out/
+# Local credentials for the command-line test — never commit.
+.env.local

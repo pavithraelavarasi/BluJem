@@ -1,0 +1,15 @@
+// For networks where repo.maven.apache.org fails: Google's Maven Central mirror first.
+// Used by tools/publish_update.sh when GRADLE_INIT points here.
+def mirror = { RepositoryHandler repos ->
+    repos.maven { url 'https://maven-central.storage-download.googleapis.com/maven2/' }
+    repos.gradlePluginPortal()
+    repos.google()
+}
+gradle.beforeSettings { settings ->
+    mirror(settings.pluginManagement.repositories)
+    if (settings.gradle.parent != null) settings.dependencyResolutionManagement.repositories { maven { url 'https://maven-central.storage-download.googleapis.com/maven2/' } }
+}
+allprojects {
+    buildscript { mirror(repositories) }
+    if (gradle.parent == null) repositories { maven { url 'https://maven-central.storage-download.googleapis.com/maven2/' } }
+}

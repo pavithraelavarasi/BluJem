@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "targets": [
+      "jumble_auth",
+      "jumble_data",
+      "jumble_ai",
+      "jumble_layout",
+      "blujem_daily",
+      "blujem_daily_job"
+    ],
+    "ignore": [],
+    "source": "functions"
+  }
+}

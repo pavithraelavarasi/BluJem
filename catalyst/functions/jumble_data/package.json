@@ -1,0 +1,12 @@
+{
+	"name": "jumble_data",
+	"version": "1.0.0",
+	"main": "index.js",
+	"author": "pavithra.selvaraj+t0@zohotest.com",
+	"dependencies": {
+		"zcatalyst-sdk-node": "latest"
+	},
+	"scripts": {
+		"test": "node --test test/*.test.js"
+	}
+}

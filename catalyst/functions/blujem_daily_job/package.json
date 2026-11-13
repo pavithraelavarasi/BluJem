@@ -1,0 +1,17 @@
+{
+	"name": "blujem_daily_job",
+	"version": "0.1.0",
+	"description": "BluJem daily puzzle pipeline — the job that asks the Zia agent (it takes longer than a request may)",
+	"main": "index.js",
+	"author": "pavithra.selvaraj+t0@zohotest.com",
+	"scripts": {
+		"test": "node --test test/*.test.js"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"dependencies": {
+		"pureimage": "^0.4.18",
+		"zcatalyst-sdk-node": "3.4.0"
+	}
+}

@@ -1,0 +1,17 @@
+{
+  "deployment": {
+    "name": "jumble_layout",
+    "stack": "node20",
+    "type": "job",
+    "env_variables": {
+      "ZIA_AGENT_CLIENT_ID": "",
+      "ZIA_AGENT_CLIENT_SECRET": "",
+      "ZIA_AGENT_REFRESH_TOKEN": "",
+      "ZIA_LAYOUT_AGENT_URL": "",
+      "LAYOUT_CACHE_SEGMENT_ID": ""
+    }
+  },
+  "execution": {
+    "main": "index.js"
+  }
+}

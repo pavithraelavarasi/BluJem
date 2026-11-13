@@ -1,0 +1,10 @@
+{
+	"name": "jumble_ai",
+	"version": "1.0.0",
+	"main": "index.js",
+	"author": "pavithra.selvaraj+t0@zohotest.com",
+	"dependencies": {
+		"@anthropic-ai/sdk": "^0.127.0",
+		"zcatalyst-sdk-node": "latest"
+	}
+}

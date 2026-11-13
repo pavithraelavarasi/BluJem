@@ -1,0 +1,29 @@
+{
+  "deployment": {
+    "name": "jumble_ai",
+    "stack": "node20",
+    "type": "advancedio",
+    "env_variables": {
+      "JUMBLE_TOKEN_SECRET": "",
+      "AI_PROVIDER": "",
+      "AI_MODEL": "",
+      "ZIA_OCR_ENABLED": "",
+      "ZIA_AGENT_ORG_ID": "",
+      "ZIA_AGENT_ID": "",
+      "ZIA_AGENT_VERSION_ID": "",
+      "ZIA_AGENT_CLIENT_ID": "",
+      "ZIA_AGENT_CLIENT_SECRET": "",
+      "ZIA_AGENT_REFRESH_TOKEN": "",
+      "ZIA_SHEET_AGENT_ID": "",
+      "ZIA_SHEET_AGENT_VERSION_ID": "",
+      "ZIA_HINT_AGENT_URL": "",
+      "ZIA_SHEET_AGENT_URL": "",
+      "ZIA_LAYOUT_AGENT_URL": "",
+      "LAYOUT_CACHE_SEGMENT_ID": "",
+      "LAYOUT_JOB_POOL": ""
+    }
+  },
+  "execution": {
+    "main": "index.js"
+  }
+}

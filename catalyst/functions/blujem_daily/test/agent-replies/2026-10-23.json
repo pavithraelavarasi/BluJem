@@ -1,0 +1,28 @@
+{
+  "status": "OK",
+  "puzzleDate": "2026-10-23",
+  "expectedDate": "2026-10-23",
+  "source": "Hindustan Times Daily Jumble",
+  "words": [
+    { "scrambled": "NHWSO", "circledPositions": [2, 4], "boxCount": 5 },
+    { "scrambled": "TYRPC", "circledPositions": [2, 4], "boxCount": 5 },
+    { "scrambled": "ETCPAC", "circledPositions": [3, 4], "boxCount": 6 },
+    { "scrambled": "ISRCSI", "circledPositions": [4, 5, 6], "boxCount": 6 }
+  ],
+  "finalClue": "AFTER ALL THE PASSENGERS LEFT, THE OCEAN LINER WAS THE ---",
+  "finalAnswer": {
+    "groups": [4, 1, 4],
+    "prefix": "“",
+    "betweenGroups": [" ", "” "],
+    "suffix": "",
+    "punctuation": ["“", "”"]
+  },
+  "cartoon": {
+    "detected": true,
+    "sourceReference": "Cartoon panel showing crew on a ship",
+    "boundingBox": { "x": 0.0, "y": 0.0, "w": 1.0, "h": 0.85 }
+  },
+  "confidence": 0.95,
+  "needsReview": false,
+  "notes": []
+}

@@ -1,0 +1,47 @@
+{
+  "_comment": "Shared by the Dart parser tests (test/puzzle_text_test.dart) and the server's (catalyst/functions/jumble_data/test/puzzle-text.test.js), so the app and the server can never read the admin's text differently.",
+  "valid": [
+    {
+      "name": "weekday, from the format guide",
+      "words": 4,
+      "text": "aDRra\ntuYpT\nhcNRcu\ncRaoCD\n\n□□□-□□□-\n□□□",
+      "scrambles": ["ADRRA", "TUYPT", "HCNRCU", "CRAOCD"],
+      "circled": [[1, 2], [2, 4], [2, 3], [1, 4, 5]],
+      "pattern": "□□□-□□□-\n□□□",
+      "boxes": 9,
+      "groups": [3, 3, 3],
+      "lines": [[0, 1], [2]]
+    },
+    {
+      "name": "quotes, a hyphen and a space are kept outside the boxes",
+      "words": 4,
+      "text": "YmSTu\nyFNTi\ndsYwEA\neTcNDE\n\n\"□□□□□-\n□□□□□\" □□□",
+      "scrambles": ["YMSTU", "YFNTI", "DSYWEA", "ETCNDE"],
+      "circled": [[0, 2, 3], [1, 2, 3], [2, 4, 5], [1, 3, 4, 5]],
+      "pattern": "\"□□□□□-\n□□□□□\" □□□",
+      "boxes": 13,
+      "groups": [5, 5, 3],
+      "lines": [[0], [1, 2]]
+    },
+    {
+      "name": "Sunday, six words, underscores typed for boxes",
+      "words": 6,
+      "text": "aDRra\ntuYpT\nhcNRcu\ncRaoCD\nbLuEj\nmEga\n\n___ _____-____",
+      "scrambles": ["ADRRA", "TUYPT", "HCNRCU", "CRAOCD", "BLUEJ", "MEGA"],
+      "circled": [[1, 2], [2, 4], [2, 3], [1, 4, 5], [1, 3], [1]],
+      "pattern": "□□□ □□□□□-□□□□",
+      "boxes": 12,
+      "groups": [3, 5, 4],
+      "lines": [[0, 1, 2]]
+    }
+  ],
+  "invalid": [
+    { "name": "three words on a weekday", "words": 4, "text": "aDRra\ntuYpT\nhcNRcu\n\n□□□□□□", "error": "4 words" },
+    { "name": "four words on a Sunday", "words": 6, "text": "aDRra\ntuYpT\nhcNRcu\ncRaoCD\n\n□□□□□□□□", "error": "6 words" },
+    { "name": "a digit in a word", "words": 4, "text": "aDR1a\ntuYpT\nhcNRcu\ncRaoCD\n\n□□□□□□□", "error": "only letters" },
+    { "name": "no circled letters", "words": 4, "text": "adrra\ntuypt\nhcnrcu\ncraocd\n\n□□□", "error": "capitals" },
+    { "name": "circles and boxes differ", "words": 4, "text": "aDRra\ntuYpT\nhcNRcu\ncRaoCD\n\n□□□-□□□", "error": "9 circled letters but 6 answer boxes" },
+    { "name": "no answer boxes", "words": 4, "text": "aDRra\ntuYpT\nhcNRcu\ncRaoCD", "error": "answer boxes" },
+    { "name": "a word after the boxes", "words": 4, "text": "aDRra\ntuYpT\nhcNRcu\n\n□□□-□□□-\n□□□\ncRaoCD", "error": "after the answer boxes" }
+  ]
+}

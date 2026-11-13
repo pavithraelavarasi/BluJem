@@ -1,0 +1,19 @@
+{
+	"name": "blujem_daily",
+	"version": "0.1.0",
+	"description": "BluJem daily puzzle pipeline — extraction stage (Zia agent + validation)",
+	"main": "index.js",
+	"author": "pavithra.selvaraj+t0@zohotest.com",
+	"scripts": {
+		"test": "node --test test/*.test.js",
+		"process-daily-test": "node scripts/process-daily-test.js",
+		"sync-job-lib": "node scripts/sync-job-lib.js"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"dependencies": {
+		"pureimage": "0.4.18",
+		"zcatalyst-sdk-node": "3.4.0"
+	}
+}

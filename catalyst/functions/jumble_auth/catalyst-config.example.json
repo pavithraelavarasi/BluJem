@@ -1,0 +1,13 @@
+{
+  "deployment": {
+    "name": "jumble_auth",
+    "stack": "node20",
+    "type": "advancedio",
+    "env_variables": {
+      "JUMBLE_TOKEN_SECRET": ""
+    }
+  },
+  "execution": {
+    "main": "index.js"
+  }
+}

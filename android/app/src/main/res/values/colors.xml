@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The cream behind the BluJem wordmark on the launcher icon. -->
+    <color name="ic_launcher_background">#FFF9E9</color>
+</resources>

@@ -1,0 +1,10 @@
+{
+  "deployment": {
+    "name": "blujem_daily",
+    "stack": "node20",
+    "type": "advancedio"
+  },
+  "execution": {
+    "main": "index.js"
+  }
+}

@@ -1,0 +1,9 @@
+{
+	"name": "jumble_layout",
+	"version": "1.0.0",
+	"main": "index.js",
+	"author": "pavithra.selvaraj+t0@zohotest.com",
+	"dependencies": {
+		"zcatalyst-sdk-node": "3.4.0"
+	}
+}

@@ -1,0 +1,6 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include "Generated.xcconfig"
+
+// Flutter excludes arm64 simulators because Zoho's sign-in pod lacks that slice;
+// the Podfile links a re-tagged copy for simulators (tool/zoho_sim_framework.sh).
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = i386
