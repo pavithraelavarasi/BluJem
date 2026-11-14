@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -13,7 +12,6 @@ import '../../models/records.dart';
 import '../share_card.dart';
 import '../theme.dart';
 import 'share_win_button.dart';
-import 'sheet_views.dart';
 import 'tile_row.dart';
 
 /// The countdown, or "Time's up" with a way to start over.
@@ -136,8 +134,8 @@ class NoticeCard extends StatelessWidget {
   }
 }
 
-/// Before Start: the cartoon with parts covered, its riddle line, and the
-/// time allowed. How to
+/// Before Start: artwork for the slot (never the cartoon), a teaser line, and
+/// the time allowed. How to
 /// play is behind the help button ([showHowToPlay]); the Start button is
 /// [StartBar], pinned below, always in view.
 class StartCard extends StatelessWidget {
@@ -159,7 +157,7 @@ class StartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CartoonTeaser(puzzle: puzzle),
+          StartArt(puzzle: puzzle),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
             child: Column(
@@ -205,117 +203,90 @@ class StartCard extends StatelessWidget {
   }
 }
 
-/// One line about [puzzle] for the start screen: its riddle when the admin
-/// typed one, otherwise a nudge for its slot (the riddle is then printed in
-/// the cartoon itself).
-String teaserLine(Puzzle puzzle) {
-  final clue = puzzle.finalClue.trim();
-  if (clue.isNotEmpty) return '“$clue”';
-  return switch (puzzle.slotKind) {
-    Slot.morning => 'This morning’s cartoon is hiding a pun. Can you crack it?',
-    Slot.evening => 'This afternoon’s cartoon is hiding a pun. Can you crack it?',
-    Slot.night => 'Tonight’s cartoon is hiding a pun. Can you crack it?',
-    Slot.sunday => 'Sunday’s Mega Jumble: six words and a bigger riddle. Can you crack it?',
-  };
-}
+/// One line for the start screen: a nudge for the puzzle's slot. Never its
+/// riddle, which waits until the clock starts.
+String teaserLine(Puzzle puzzle) => switch (puzzle.slotKind) {
+  Slot.morning => 'This morning’s cartoon is hiding a pun. Can you crack it?',
+  Slot.evening => 'This afternoon’s cartoon is hiding a pun. Can you crack it?',
+  Slot.night => 'Tonight’s cartoon is hiding a pun. Can you crack it?',
+  Slot.sunday => 'Sunday’s Mega Jumble: six words and a bigger riddle. Can you crack it?',
+};
 
-/// The cartoon as a thumbnail with three parts frosted over and a question
-/// mark on each, the same ones every time: enough to want to play, not
-/// enough to solve it before the clock starts.
-class CartoonTeaser extends StatelessWidget {
-  const CartoonTeaser({super.key, required this.puzzle});
+/// The start screen's picture: artwork for the puzzle's slot — a sunrise,
+/// an afternoon sun, a night sky, Sunday's big day — with JUMBLE in tipped
+/// tiles. Nothing of the puzzle itself, so no one sees the cartoon or its
+/// riddle before the clock starts.
+class StartArt extends StatelessWidget {
+  const StartArt({super.key, required this.puzzle});
   final Puzzle puzzle;
-
-  /// Where covers may go, as fractions of the cartoon; three are picked.
-  static const _spots = [
-    Offset(0.27, 0.3),
-    Offset(0.73, 0.32),
-    Offset(0.3, 0.68),
-    Offset(0.72, 0.7),
-    Offset(0.5, 0.48),
-  ];
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
-    return FutureBuilder<LoadedSheet>(
-      future: loadSheet(puzzle),
-      builder: (context, snap) {
-        final sheet = snap.data;
-        if (sheet == null) {
-          return Container(
-            height: 180,
-            color: p.sunken,
-            alignment: Alignment.center,
-            child: snap.hasError
-                ? Icon(Icons.image_outlined, color: p.inkFaint, size: 40)
-                : const CircularProgressIndicator(),
-          );
-        }
-        final seed = puzzle.id.codeUnits.fold(0, (sum, c) => sum * 31 + c & 0x7fffffff);
-        final spots = [..._spots]..shuffle(Random(seed));
-        return ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 280),
-          child: Center(
-            child: Builder(
-              builder: (context) {
-                final crop = SheetCrop(image: sheet.image, region: sheet.cartoon);
-                return AspectRatio(
-                  aspectRatio: crop.aspect,
-                  child: LayoutBuilder(
-                    builder: (context, size) {
-                      final r = min(size.maxWidth, size.maxHeight) * 0.16;
-                      return Stack(
-                        children: [
-                          Positioned.fill(child: crop),
-                          for (final spot in spots.take(3))
-                            Positioned(
-                              left: spot.dx * size.maxWidth - r,
-                              top: spot.dy * size.maxHeight - r,
-                              width: r * 2,
-                              height: r * 2,
-                              child: ClipOval(
-                                child: BackdropFilter(
-                                  filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.white.withValues(alpha: 0.35),
-                                      border: Border.all(color: const Color(0xFF1E6FE0), width: 3),
-                                    ),
-                                    child: Center(
-                                      child: Container(
-                                        width: r * 0.8,
-                                        height: r * 0.8,
-                                        alignment: Alignment.center,
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFF1E6FE0),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Text(
-                                          '?',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: r * 0.55,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
+    final (colors, icon, label) = switch (puzzle.slotKind) {
+      Slot.morning => (const [Color(0xFFFFD39B), Color(0xFFFF9E7A)], Icons.wb_sunny_rounded, 'MORNING JUMBLE'),
+      Slot.evening => (const [Color(0xFF9FD8FF), Color(0xFFFFC56E)], Icons.wb_twilight_rounded, 'AFTERNOON JUMBLE'),
+      Slot.night => (const [Color(0xFF1B2A5C), Color(0xFF5B3D8F)], Icons.nights_stay_rounded, 'NIGHT JUMBLE'),
+      Slot.sunday => (const [Color(0xFF1E6FE0), Color(0xFF7A4CE0)], Icons.auto_awesome_rounded, 'SUNDAY MEGA JUMBLE'),
+    };
+    final dark = puzzle.slotKind == Slot.night || puzzle.slotKind == Slot.sunday;
+    final ink = dark ? Colors.white : const Color(0xFF1C1B19);
+    return Container(
+      height: 190,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+      ),
+      child: Stack(
+        children: [
+          // The slot's sky: a sun or moon, and stars at night.
+          Positioned(right: 12, top: 8, child: Icon(icon, size: 46, color: ink.withValues(alpha: 0.85))),
+          if (dark)
+            for (final (x, y) in const [(0.08, 0.15), (0.22, 0.32), (0.4, 0.12), (0.58, 0.28), (0.12, 0.6)])
+              Align(
+                alignment: Alignment(x * 2 - 1, y * 2 - 1),
+                child: Icon(Icons.star_rounded, size: 12, color: Colors.white.withValues(alpha: 0.7)),
+              ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (final (i, c) in 'JUMBLE'.split('').indexed)
+                    Transform.rotate(
+                      angle: (i.isEven ? -1 : 1) * 0.09,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8C547),
+                          borderRadius: BorderRadius.circular(9),
+                          boxShadow: const [BoxShadow(color: Color(0xFFB8952A), offset: Offset(0, 3))],
+                        ),
+                        child: Text(
+                          c,
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF1C1B19)),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                label,
+                style: TextStyle(color: ink, fontWeight: FontWeight.w800, letterSpacing: 2.5, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${puzzle.words.length} words · 1 cartoon riddle',
+                style: TextStyle(color: ink.withValues(alpha: 0.8), fontSize: 13),
+              ),
+            ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
