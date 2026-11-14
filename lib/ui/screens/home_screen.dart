@@ -57,7 +57,10 @@ class HomeScreen extends StatelessWidget {
         ? 'Come back tomorrow for new ones.'
         : 'The ${next.$1.label.toLowerCase()} puzzle unlocks at ${next.$1.time}.';
 
+    // Before the first check with the server, "not up yet" would be a guess.
+    final loading = awaiting && !library.checked;
     final (headline, body, button) = switch ((awaiting, standIn, status)) {
+      (true, _, _) when loading => ("Getting today's puzzles…", 'One moment.', 'Loading…'),
       (true, _, _) => (
         "Today's puzzle isn't up yet",
         "We'll let you in the moment it's published.",
@@ -91,13 +94,12 @@ class HomeScreen extends StatelessWidget {
       _ => (slotName, 'Unscramble the words, then crack the cartoon riddle.', 'Start Puzzle · ${day.slotKind.label}'),
     };
 
-    // The card above already opens the day's puzzle, so the list shows only
-    // today's other slots: the later ones' locks, or the earlier ones still to play.
-    final shownAbove = awaiting || standIn ? null : day.slotKind;
-    final otherSlots = [
-      for (final slot in Slot.forDate(indiaDate(DateTime.now())))
-        if (slot != shownAbove) slot,
-    ];
+    // Every one of today's slots, the one for this hour highlighted: the
+    // latest whose time has come (none before 9 AM, or 6 AM on Sunday).
+    final todayIso = indiaDate(DateTime.now());
+    final slots = Slot.forDate(todayIso);
+    final nowSlot = slots.lastWhere((s) => !slotStart(todayIso, s).isAfter(DateTime.now()), orElse: () => slots.first);
+    final beforeFirst = slotStart(todayIso, slots.first).isAfter(DateTime.now());
 
     return Scaffold(
       body: SafeArea(
@@ -130,18 +132,15 @@ class HomeScreen extends StatelessWidget {
                 button: button,
                 status: status,
                 slot: awaiting ? null : day.slotKind.heading,
-                difficulty: day.difficulty,
-                minutes: day.timeLimitSeconds ~/ 60,
-                onPlay: isToday ? () => onOpen(day) : onPlayToday,
+                onPlay: loading ? null : (isToday ? () => onOpen(day) : onPlayToday),
               ),
-              if (otherSlots.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                Text(shownAbove == null ? "Today's puzzles" : 'Also today', style: t.titleMedium),
-                const SizedBox(height: 8),
-              ],
-              for (final slot in otherSlots)
+              const SizedBox(height: 20),
+              Text("Today's puzzles", style: t.titleMedium),
+              const SizedBox(height: 8),
+              for (final slot in slots)
                 _SlotTile(
                   slot: slot,
+                  now: !beforeFirst && slot == nowSlot,
                   puzzle: library.todaysPuzzles.where((p) => p.slotKind == slot).firstOrNull,
                   locked: upcoming.any((u) => u.$1 == slot),
                   solved: (p) => records.finished(p.id),
@@ -218,6 +217,7 @@ class HomeScreen extends StatelessWidget {
 class _SlotTile extends StatelessWidget {
   const _SlotTile({
     required this.slot,
+    required this.now,
     required this.puzzle,
     required this.locked,
     required this.solved,
@@ -225,6 +225,9 @@ class _SlotTile extends StatelessWidget {
   });
 
   final Slot slot;
+
+  /// This hour's slot: ringed in the accent and marked NOW.
+  final bool now;
   final Puzzle? puzzle;
   final bool locked;
   final bool Function(Puzzle) solved;
@@ -248,6 +251,13 @@ class _SlotTile extends StatelessWidget {
           );
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: now ? p.accentSoft : null,
+      shape: now
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: BorderSide(color: p.accent, width: 2.5),
+            )
+          : null,
       child: ListTile(
         onTap: ready == null ? null : () => onOpen(ready),
         leading: Icon(switch (slot) {
@@ -255,7 +265,28 @@ class _SlotTile extends StatelessWidget {
           Slot.night => Icons.nights_stay_rounded,
           _ => Icons.wb_sunny_rounded,
         }, color: ready == null ? p.inkFaint : p.accent),
-        title: Text(slot.heading, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                slot.heading,
+                style: TextStyle(fontWeight: now ? FontWeight.w800 : FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (now) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(color: p.accent, borderRadius: BorderRadius.circular(6)),
+                child: const Text(
+                  'NOW',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF1C1B19)),
+                ),
+              ),
+            ],
+          ],
+        ),
         subtitle: Text(subtitle, style: TextStyle(color: p.inkSoft)),
         trailing: Icon(icon, color: done ? p.success : (ready == null ? p.inkFaint : p.ink)),
       ),
@@ -270,16 +301,15 @@ class _TodayCard extends StatelessWidget {
     required this.button,
     required this.status,
     required this.slot,
-    required this.difficulty,
-    required this.minutes,
     required this.onPlay,
   });
 
-  final String headline, body, button, difficulty;
+  final String headline, body, button;
   final String? slot;
   final RunStatus status;
-  final int minutes;
-  final VoidCallback onPlay;
+
+  /// Null while today's puzzles are still loading.
+  final VoidCallback? onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -294,19 +324,16 @@ class _TodayCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              if (slot != null) ...[_Chip(text: slot!), const SizedBox(width: 8)],
-              _Chip(text: difficulty),
-              const SizedBox(width: 8),
-              _Chip(text: '$minutes min'),
-              const Spacer(),
-              if (status == RunStatus.completed) Icon(Icons.verified_rounded, color: p.success, size: 28),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const _MiniTiles(),
-          const SizedBox(height: 16),
+          if (slot != null || status == RunStatus.completed) ...[
+            Row(
+              children: [
+                if (slot != null) _Chip(text: slot!),
+                const Spacer(),
+                if (status == RunStatus.completed) Icon(Icons.verified_rounded, color: p.success, size: 28),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
           Text(headline, style: t.headlineSmall),
           const SizedBox(height: 4),
           Text(body, style: TextStyle(color: p.ink.withValues(alpha: 0.75), height: 1.35)),
@@ -338,34 +365,4 @@ class _Chip extends StatelessWidget {
     ),
     child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
   );
-}
-
-/// A decorative "JUMBLE" in tiles — never the day's letters.
-class _MiniTiles extends StatelessWidget {
-  const _MiniTiles();
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.palette;
-    return ExcludeSemantics(
-      child: Row(
-        children: [
-          for (final (i, c) in 'BLUJEM'.split('').indexed)
-            Container(
-              width: 34,
-              height: 34,
-              margin: const EdgeInsets.only(right: 6),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: p.tile,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Color.lerp(p.rowColor(i), p.ink, 0.25)!, width: 2),
-                boxShadow: [BoxShadow(color: Color.lerp(p.rowColor(i), p.ink, 0.25)!, offset: const Offset(0, 2))],
-              ),
-              child: Text(c, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-            ),
-        ],
-      ),
-    );
-  }
 }
