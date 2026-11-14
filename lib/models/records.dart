@@ -272,3 +272,12 @@ class Hint {
   final String text;
   final HintSource source;
 }
+
+/// Today's medal for how many of today's puzzles were solved: 3 Gold,
+/// 2 Silver, 1 Bronze; null before the first.
+String? medalFor(int solvedToday) => switch (solvedToday) {
+  <= 0 => null,
+  1 => '🥉 Bronze',
+  2 => '🥈 Silver',
+  _ => '🥇 Gold',
+};

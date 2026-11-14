@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/dates.dart';
 import '../../data/api_client.dart';
 import '../../data/auth_repository.dart';
 import '../../data/profile_service.dart';
+import '../../data/puzzle_library.dart';
 import '../../data/records_repository.dart';
+import '../../models/records.dart';
 import '../feedback.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -19,7 +20,9 @@ class ProfileScreen extends StatelessWidget {
     final p = context.palette;
     final t = Theme.of(context).textTheme;
     final auth = context.watch<AuthRepository>();
-    final stats = context.watch<RecordsRepository>().stats;
+    final records = context.watch<RecordsRepository>();
+    final library = context.watch<PuzzleLibrary>();
+    final stats = records.stats;
     final feedback = context.watch<GameFeedback>();
     final account = auth.account;
     if (account == null) return const SizedBox.shrink();
@@ -90,15 +93,9 @@ class ProfileScreen extends StatelessWidget {
                   Row(
                     children: [
                       StatTile(
-                        label: 'Best time',
-                        value: stats.bestSeconds == null ? '--:--' : clock(stats.bestSeconds!),
-                        icon: Icons.timer_outlined,
-                      ),
-                      const SizedBox(width: 10),
-                      StatTile(
-                        label: 'Average',
-                        value: stats.averageSeconds == null ? '--:--' : clock(stats.averageSeconds!),
-                        icon: Icons.av_timer_rounded,
+                        label: "Today's medal",
+                        value: medalFor(library.todaysPuzzles.where((p) => records.finished(p.id)).length) ?? '—',
+                        icon: Icons.emoji_events_outlined,
                       ),
                       const SizedBox(width: 10),
                       StatTile(label: 'Hints used', value: '${stats.hintsUsed}', icon: Icons.lightbulb_outline_rounded),

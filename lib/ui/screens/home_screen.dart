@@ -8,6 +8,7 @@ import '../../data/puzzle_library.dart';
 import '../../data/records_repository.dart';
 import '../../game/game_controller.dart';
 import '../../models/puzzle.dart';
+import '../../models/records.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -147,9 +148,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   StatTile(
-                    label: 'Best time',
-                    value: stats.bestSeconds == null ? '--:--' : clock(stats.bestSeconds!),
-                    icon: Icons.timer_outlined,
+                    label: "Today's medal",
+                    value: medalFor(library.todaysPuzzles.where((p) => records.finished(p.id)).length) ?? '—',
+                    icon: Icons.emoji_events_outlined,
                   ),
                 ],
               ),
