@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/slots.dart';
 import '../../data/api_client.dart';
 import '../../data/auth_repository.dart';
 import '../../data/profile_service.dart';
@@ -94,7 +95,12 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       StatTile(
                         label: "Today's medal",
-                        value: medalFor(library.todaysPuzzles.where((p) => records.finished(p.id)).length) ?? '—',
+                        value:
+                            medalFor(
+                              library.todaysPuzzles.where((p) => records.finished(p.id)).length,
+                              ofDay: Slot.forDate(indiaDate(DateTime.now())).length,
+                            ) ??
+                            '—',
                         icon: Icons.emoji_events_outlined,
                       ),
                       const SizedBox(width: 10),

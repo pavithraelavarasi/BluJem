@@ -9,4 +9,6 @@ void main() {
     expect(medalFor(2), '🥈 Silver');
     expect(medalFor(3), '🥇 Gold');
   });
+
+  test("Sunday's one Mega Jumble is Gold", () => expect(medalFor(1, ofDay: 1), '🥇 Gold'));
 }

@@ -273,11 +273,13 @@ class Hint {
   final HintSource source;
 }
 
-/// Today's medal for how many of today's puzzles were solved: 3 Gold,
-/// 2 Silver, 1 Bronze; null before the first.
-String? medalFor(int solvedToday) => switch (solvedToday) {
-  <= 0 => null,
-  1 => '🥉 Bronze',
-  2 => '🥈 Silver',
-  _ => '🥇 Gold',
-};
+/// Today's medal for solving [solved] of the day's [ofDay] puzzles: all of
+/// them is Gold (Sunday's one Mega Jumble too), otherwise 2 Silver, 1 Bronze;
+/// null before the first.
+String? medalFor(int solved, {int ofDay = 3}) => solved <= 0
+    ? null
+    : solved >= ofDay
+    ? '🥇 Gold'
+    : solved == 2
+    ? '🥈 Silver'
+    : '🥉 Bronze';

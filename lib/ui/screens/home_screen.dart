@@ -149,7 +149,12 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(width: 10),
                   StatTile(
                     label: "Today's medal",
-                    value: medalFor(library.todaysPuzzles.where((p) => records.finished(p.id)).length) ?? '—',
+                    value:
+                        medalFor(
+                          library.todaysPuzzles.where((p) => records.finished(p.id)).length,
+                          ofDay: Slot.forDate(indiaDate(DateTime.now())).length,
+                        ) ??
+                        '—',
                     icon: Icons.emoji_events_outlined,
                   ),
                 ],
