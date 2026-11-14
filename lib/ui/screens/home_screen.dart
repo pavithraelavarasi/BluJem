@@ -105,7 +105,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              Text('Hi ${_firstName(account?.displayName)}!', style: t.headlineMedium),
+              Text('${greeting(DateTime.now())}, ${_firstName(account?.displayName)}!', style: t.headlineMedium),
               Text(longDate(), style: TextStyle(color: p.inkSoft)),
               const SizedBox(height: 20),
               _TodayCard(
@@ -166,6 +166,15 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
+  /// "Good Morning" before noon, "Good Afternoon" until 5 PM, then "Good
+  /// Evening" — on the phone's own clock, wherever the player is.
+  @visibleForTesting
+  static String greeting(DateTime now) => now.hour < 12
+      ? 'Good Morning'
+      : now.hour < 17
+      ? 'Good Afternoon'
+      : 'Good Evening';
 
   static String _firstName(String? name) => (name ?? '').trim().split(RegExp(r'[\s@]')).first.isEmpty
       ? 'there'
