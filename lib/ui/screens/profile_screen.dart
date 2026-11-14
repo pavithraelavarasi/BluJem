@@ -9,6 +9,7 @@ import '../../data/puzzle_library.dart';
 import '../../data/records_repository.dart';
 import '../../models/records.dart';
 import '../feedback.dart';
+import '../share_card.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -112,6 +113,20 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const _Section(children: [_AboutTile()]),
+            const SizedBox(height: 12),
+            _Section(
+              children: [
+                Builder(
+                  builder: (tile) => ListTile(
+                    leading: const Icon(Icons.ios_share_rounded),
+                    title: const Text('Share BluJem'),
+                    subtitle: const Text('Invite friends to play'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => shareApp(tile, stats: stats),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             _Section(
               children: [

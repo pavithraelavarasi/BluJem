@@ -12,6 +12,7 @@ import '../core/dates.dart';
 import '../data/api_client.dart';
 import '../game/game_controller.dart';
 import '../models/box_rect.dart';
+import '../models/records.dart';
 import 'theme.dart';
 import 'widgets/sheet_views.dart';
 
@@ -115,6 +116,48 @@ Future<void> shareWin(BuildContext context, GameController game) async {
     debugPrint('Share failed: $e');
     messenger?.showSnackBar(const SnackBar(content: Text('Could not make the picture to share. Try again.')));
   }
+}
+
+/// Draws the card that invites friends to BluJem itself — no puzzle on it —
+/// and opens the share sheet with it. [stats] adds this player's streak and
+/// count when there is something to brag about.
+Future<void> shareApp(BuildContext context, {PlayerStats? stats}) async {
+  final box = context.findRenderObject() as RenderBox?;
+  final origin = box == null ? null : box.localToGlobal(Offset.zero) & box.size;
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  try {
+    final logo = await _asset('assets/images/blujem_logo.png');
+    final png = await renderAppCard(AppCard(logo: logo, brag: appBrag(stats)));
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/blujem-invite.png');
+    await file.writeAsBytes(png, flush: true);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'image/png')],
+        text: 'Play BluJem with me — a new word jumble every morning, afternoon and night! $appDownloadUrl',
+        subject: 'Play BluJem with me',
+        sharePositionOrigin: origin,
+      ),
+    );
+  } catch (e) {
+    debugPrint('Share failed: $e');
+    messenger?.showSnackBar(const SnackBar(content: Text('Could not make the picture to share. Try again.')));
+  }
+}
+
+/// What the app card shows: the logo and, when there is one, a line about
+/// this player.
+class AppCard {
+  const AppCard({required this.logo, this.brag});
+  final ui.Image logo;
+  final String? brag;
+}
+
+/// "I'm on a 5-day streak · 12 puzzles solved", or null before the first solve.
+String? appBrag(PlayerStats? stats) {
+  if (stats == null || stats.puzzlesCompleted == 0) return null;
+  final solved = stats.puzzlesCompleted == 1 ? '1 puzzle solved' : '${stats.puzzlesCompleted} puzzles solved';
+  return stats.currentStreak > 1 ? "I'm on a ${stats.currentStreak}-day streak · $solved" : 'I have $solved';
 }
 
 Future<ui.Image> _asset(String path) async {
@@ -229,7 +272,109 @@ double paintWinCard(Canvas canvas, WinCard card) {
   }
 
   // The ad: a QR code to download the app.
-  final footer = Rect.fromLTWH(_margin, footerTop, _width - 2 * _margin, footerHeight);
+  _appFooter(
+    canvas,
+    footerTop,
+    footerHeight,
+    'Can you solve it?',
+    'A new BluJem word jumble every day. Scan to get the free Android app.',
+  );
+  return height;
+}
+
+/// [card] as a PNG, 1080 pixels wide.
+Future<Uint8List> renderAppCard(AppCard card) async {
+  final recorder = ui.PictureRecorder();
+  final height = paintAppCard(Canvas(recorder), card);
+  final image = await recorder.endRecording().toImage(_width.round(), height.round());
+  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+  return bytes!.buffer.asUint8List();
+}
+
+/// What a day of BluJem holds, for the app card.
+const _features = [
+  ('3 new puzzles a day', 'Morning, afternoon and night'),
+  ('Sunday Mega Jumble', 'Six words and a bigger riddle'),
+  ('Win daily medals', 'Gold, silver and bronze'),
+  ('Climb the leaderboard', 'Race friends against the clock'),
+];
+
+/// Paints the invite [card] from the top of [canvas]; returns the height used.
+/// BluJem on top, a row of letter tiles, what a day holds, the player's line,
+/// and the QR code to get the app.
+double paintAppCard(Canvas canvas, AppCard card) {
+  const logoHeight = 150.0;
+  final logoWidth = card.logo.width * logoHeight / card.logo.height;
+  const featureHeight = 118.0;
+  const footerHeight = 280.0;
+
+  var y = 72.0;
+  final logoTop = y;
+  y += logoHeight + 20;
+  final taglineTop = y;
+  y += 70 + 40;
+  final tilesTop = y;
+  const tile = 120.0;
+  y += tile + 56;
+  final featuresTop = y;
+  y += _features.length * featureHeight + 24;
+  final bragTop = card.brag == null ? null : y;
+  if (card.brag != null) y += 110;
+  final footerTop = y;
+  y += footerHeight + _margin;
+  final height = y;
+
+  canvas.drawRect(Rect.fromLTWH(0, 0, _width, height), Paint()..color = _paper);
+  _image(canvas, card.logo, Rect.fromLTWH((_width - logoWidth) / 2, logoTop, logoWidth, logoHeight));
+  _text(canvas, 'The daily word jumble', taglineTop, size: 54, weight: FontWeight.w700, color: _blue);
+
+  // JUMBLE in the game's tiles, each tipped a little, like letters to sort.
+  const word = 'JUMBLE';
+  const gap = 18.0;
+  var x = (_width - (word.length * tile + (word.length - 1) * gap)) / 2;
+  for (var i = 0; i < word.length; i++) {
+    canvas.save();
+    canvas.translate(x + tile / 2, tilesTop + tile / 2);
+    canvas.rotate((i.isEven ? -1 : 1) * 0.06);
+    final r = RRect.fromRectAndRadius(const Rect.fromLTWH(-tile / 2, -tile / 2, tile, tile), const Radius.circular(22));
+    canvas.drawRRect(r.shift(const Offset(0, 7)), Paint()..color = const Color(0xFFB8952A));
+    canvas.drawRRect(r, Paint()..color = _tile);
+    _text(canvas, word[i], -tile * 0.36, size: tile * 0.58, weight: FontWeight.w700, left: -tile / 2, width: tile);
+    canvas.restore();
+    x += tile + gap;
+  }
+
+  // What a day holds, one card per line.
+  for (var i = 0; i < _features.length; i++) {
+    final (title, detail) = _features[i];
+    final row = Rect.fromLTWH(_margin, featuresTop + i * featureHeight, _width - 2 * _margin, featureHeight - 18);
+    canvas.drawRRect(RRect.fromRectAndRadius(row, const Radius.circular(24)), Paint()..color = _card);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(row, const Radius.circular(24)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = _rule,
+    );
+    canvas.drawCircle(Offset(row.left + 50, row.center.dy), 14, Paint()..color = _blue);
+    final left = row.left + 90;
+    final width = row.right - 24 - left;
+    _text(canvas, title, row.top + 12, size: 36, weight: FontWeight.w700, left: left, width: width);
+    _text(canvas, detail, row.top + 56, size: 28, color: _inkSoft, left: left, width: width);
+  }
+
+  if (bragTop != null) {
+    _text(canvas, card.brag!, bragTop, size: 40, weight: FontWeight.w700, color: _ink);
+    _text(canvas, 'Can you keep up?', bragTop + 52, size: 32, weight: FontWeight.w600, color: _inkSoft);
+  }
+
+  _appFooter(canvas, footerTop, footerHeight, 'Play with me', 'Free on Android. Scan to get BluJem.');
+  return height;
+}
+
+/// The dark footer with the QR code to the download page.
+void _appFooter(Canvas canvas, double top, double footerHeight, String title, String body) {
+  final footer = Rect.fromLTWH(_margin, top, _width - 2 * _margin, footerHeight);
   canvas.drawRRect(RRect.fromRectAndRadius(footer, const Radius.circular(32)), Paint()..color = _ink);
   const qrSize = 216.0;
   final qrBox = Rect.fromLTWH(footer.left + 32, footer.top + (footerHeight - qrSize) / 2, qrSize, qrSize);
@@ -239,7 +384,7 @@ double paintWinCard(Canvas canvas, WinCard card) {
   final textWidth = footer.right - 32 - textLeft;
   _text(
     canvas,
-    'Can you solve it?',
+    title,
     footer.top + 44,
     size: 44,
     weight: FontWeight.w700,
@@ -247,17 +392,7 @@ double paintWinCard(Canvas canvas, WinCard card) {
     left: textLeft,
     width: textWidth,
   );
-  _text(
-    canvas,
-    'A new BluJem word jumble every day. Scan to get the free Android app.',
-    footer.top + 108,
-    size: 30,
-    weight: FontWeight.w400,
-    color: const Color(0xFFE6E0D3),
-    left: textLeft,
-    width: textWidth,
-  );
-  return height;
+  _text(canvas, body, footer.top + 108, size: 30, color: const Color(0xFFE6E0D3), left: textLeft, width: textWidth);
 }
 
 /// The answer on one line, or two split at the space nearest the middle when

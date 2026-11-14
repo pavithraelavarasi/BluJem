@@ -9,6 +9,7 @@ import '../../data/records_repository.dart';
 import '../../game/game_controller.dart';
 import '../../models/puzzle.dart';
 import '../../models/records.dart';
+import '../share_card.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -102,6 +103,13 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   Image.asset('assets/images/blujem_logo.png', height: 36, semanticLabel: 'BluJem'),
                   const Spacer(),
+                  Builder(
+                    builder: (button) => IconButton(
+                      tooltip: 'Share BluJem',
+                      onPressed: () => shareApp(button, stats: stats),
+                      icon: const Icon(Icons.ios_share_rounded),
+                    ),
+                  ),
                   StreakPill(days: stats.currentStreak, safe: stats.solvedToday),
                 ],
               ),

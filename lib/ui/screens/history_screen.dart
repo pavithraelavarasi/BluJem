@@ -173,6 +173,13 @@ class _PuzzleTile extends StatelessWidget {
 
 /// A month: puzzle days can be opened; a day whose puzzles are all solved is
 /// filled, one with some solved is half filled.
+/// A day's medal on the calendar: Gold when all its puzzles are solved,
+/// Silver when some are, grey (the palette's sunken) when none are yet. The
+/// same in dark mode, with dark numbers, so they read as medals.
+const _gold = Color(0xFFE8C547);
+const _silver = Color(0xFFC3C8CF);
+const _medalInk = Color(0xFF1C1B19);
+
 class _MonthCalendar extends StatelessWidget {
   const _MonthCalendar({
     required this.month,
@@ -252,14 +259,11 @@ class _MonthCalendar extends StatelessWidget {
                     final solved = hasPuzzle && count == list.length;
                     final some = count > 0 && !solved;
                     final isToday = day == today;
+                    final medal = solved ? _gold : (some ? _silver : null);
                     return Padding(
                       padding: const EdgeInsets.all(3),
                       child: Material(
-                        color: solved
-                            ? p.success
-                            : some
-                            ? p.successSoft
-                            : (hasPuzzle ? p.accentSoft : Colors.transparent),
+                        color: medal ?? (hasPuzzle ? p.sunken : Colors.transparent),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                           side: isToday ? BorderSide(color: p.ink, width: 2) : BorderSide.none,
@@ -272,7 +276,7 @@ class _MonthCalendar extends StatelessWidget {
                               '$d',
                               style: TextStyle(
                                 fontWeight: hasPuzzle ? FontWeight.w700 : FontWeight.w400,
-                                color: solved ? p.paper : (hasPuzzle ? p.ink : p.inkFaint),
+                                color: medal != null ? _medalInk : (hasPuzzle ? p.ink : p.inkFaint),
                               ),
                             ),
                           ),
@@ -283,14 +287,14 @@ class _MonthCalendar extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 14,
+              runSpacing: 6,
               children: [
-                _Legend(color: p.accentSoft, label: 'Puzzle'),
-                const SizedBox(width: 16),
-                _Legend(color: p.successSoft, label: 'Some solved'),
-                const SizedBox(width: 16),
-                _Legend(color: p.success, label: 'All solved'),
+                const _Legend(color: _gold, label: 'Gold · all solved'),
+                const _Legend(color: _silver, label: 'Silver · some'),
+                _Legend(color: p.sunken, label: 'Not solved'),
               ],
             ),
           ],
@@ -307,6 +311,7 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
     children: [
       Container(
         width: 12,

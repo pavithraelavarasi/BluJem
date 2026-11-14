@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:blujem/models/box_rect.dart';
+import 'package:blujem/models/records.dart';
 import 'package:blujem/ui/share_card.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,6 +61,37 @@ void main() {
       expect(image.height, greaterThan(1200));
       // SHARE_CARD_OUT=/path/card.png flutter test … saves it to look at.
       final out = Platform.environment['SHARE_CARD_OUT'];
+      if (out != null) File(out).writeAsBytesSync(png);
+    });
+  });
+
+  test('the app card brags only once there is something to brag about', () {
+    PlayerStats stats(int solved, int streak) => PlayerStats(
+      currentStreak: streak,
+      longestStreak: streak,
+      puzzlesCompleted: solved,
+      bestSeconds: null,
+      averageSeconds: null,
+      hintsUsed: 0,
+      solvedToday: false,
+    );
+    expect(appBrag(null), isNull);
+    expect(appBrag(stats(0, 0)), isNull);
+    expect(appBrag(stats(1, 1)), 'I have 1 puzzle solved');
+    expect(appBrag(stats(12, 5)), "I'm on a 5-day streak · 12 puzzles solved");
+  });
+
+  testWidgets('the app card draws to a PNG 1080 wide', (tester) async {
+    final font = FontLoader('Fredoka')..addFont(rootBundle.load('assets/fonts/Fredoka.ttf'));
+    await font.load();
+    await tester.runAsync(() async {
+      final logo = await _decode(File('assets/images/blujem_logo.png').readAsBytesSync());
+      final png = await renderAppCard(AppCard(logo: logo, brag: "I'm on a 5-day streak · 12 puzzles solved"));
+      final image = await _decode(png);
+      expect(image.width, 1080);
+      expect(image.height, greaterThan(1200));
+      // APP_CARD_OUT=/path/card.png flutter test … saves it to look at.
+      final out = Platform.environment['APP_CARD_OUT'];
       if (out != null) File(out).writeAsBytesSync(png);
     });
   });
