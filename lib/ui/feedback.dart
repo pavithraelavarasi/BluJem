@@ -48,27 +48,75 @@ class GameFeedback extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Each sound's file and volume. The files fade out to silence
+  /// (tools/make_sounds.py), so none is heard cut short.
+  static const _files = {
+    GameSound.key: ('sounds/sfx_key.wav', 0.6),
+    GameSound.solved: ('sounds/sfx_solved.wav', 1.0),
+    GameSound.complete: ('sounds/sfx_complete.wav', 1.0),
+    GameSound.start: ('sounds/sfx_start.wav', 0.9),
+    GameSound.shuffle: ('sounds/sfx_shuffle.wav', 0.8),
+    GameSound.timeout: ('sounds/sfx_timeout.wav', 0.9),
+  };
+
+  /// Loads every sound once, so the first play of each starts at once
+  /// rather than being clipped while its file loads. Played alongside the
+  /// player's music, never stopping it.
+  Future<void> preload() async {
+    try {
+      await AudioPlayer.global.setAudioContext(
+        AudioContextConfig(focus: AudioContextConfigFocus.mixWithOthers).build(),
+      );
+    } catch (e) {
+      debugPrint('Sound setup: $e');
+    }
+    for (final sound in GameSound.values) {
+      await _player(sound);
+    }
+  }
+
+  Future<AudioPlayer?> _player(GameSound sound) async {
+    final ready = _players[sound];
+    if (ready != null) return ready;
+    final (file, volume) = _files[sound]!;
+    try {
+      // The quick tick and swish want the fast path; the longer chimes the
+      // full player, which plays them to the end.
+      final player = AudioPlayer()
+        ..setPlayerMode(
+          sound == GameSound.key || sound == GameSound.shuffle ? PlayerMode.lowLatency : PlayerMode.mediaPlayer,
+        );
+      await player.setReleaseMode(ReleaseMode.stop);
+      await player.setVolume(volume);
+      await player.setSource(AssetSource(file));
+      return _players[sound] = player;
+    } catch (e) {
+      debugPrint('Sound $sound: $e');
+      return null;
+    }
+  }
+
   void play(GameSound sound) {
     switch (sound) {
-      case GameSound.key:
-        break;
       case GameSound.solved:
         HapticFeedback.mediumImpact();
       case GameSound.complete:
         HapticFeedback.heavyImpact();
+      default:
+        break;
     }
     if (_muted) return;
-    final (file, volume) = switch (sound) {
-      GameSound.key => ('sounds/sfx_key.wav', 0.6),
-      GameSound.solved => ('sounds/sfx_solved.wav', 1.0),
-      GameSound.complete => ('sounds/sfx_complete.wav', 1.0),
-    };
-    final player = _players.putIfAbsent(sound, () => AudioPlayer()..setPlayerMode(PlayerMode.lowLatency));
-    unawaited(
-      player.play(AssetSource(file), volume: volume).catchError((Object e) {
+    unawaited(() async {
+      final player = await _player(sound);
+      if (player == null) return;
+      try {
+        // From the top each time: a key tapped fast restarts its tick.
+        await player.stop();
+        await player.resume();
+      } catch (e) {
         debugPrint('Sound $sound: $e');
-      }),
-    );
+      }
+    }());
   }
 
   @override

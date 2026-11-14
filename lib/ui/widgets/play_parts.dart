@@ -133,7 +133,8 @@ class NoticeCard extends StatelessWidget {
   }
 }
 
-/// Before Start: the cartoon kept out of focus, the rules, and the button.
+/// Before Start: the cartoon kept out of focus, the time allowed and how to
+/// play. The Start button is [StartBar], pinned below, always in view.
 class StartCard extends StatelessWidget {
   const StartCard({super.key, required this.game, required this.fromDay, required this.pointsOn});
   final GameController game;
@@ -204,15 +205,10 @@ class StartCard extends StatelessWidget {
                     ),
                   ],
                 ],
-                const SizedBox(height: 12),
-                const HowToPlay(),
                 const SizedBox(height: 18),
-                FilledButton.icon(
-                  onPressed: game.start,
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text(game.playedBefore ? 'Play Again (No Points)' : 'Start Puzzle'),
-                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
-                ),
+                Text('How to play', style: t.titleMedium),
+                const SizedBox(height: 10),
+                const HowToPlay(),
                 if (canShareWin(game)) ...[const SizedBox(height: 12), ShareWinButton(game: game)],
                 if (game.earnsHalf || game.playedBefore) ...[
                   const SizedBox(height: 8),
@@ -239,35 +235,90 @@ class StartCard extends StatelessWidget {
   }
 }
 
+/// The game's rules as numbered steps, shown before every start.
 class HowToPlay extends StatelessWidget {
   const HowToPlay({super.key});
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      const _Rule(
-        icon: Icons.touch_app_rounded,
-        text: 'Tap the letters in the order of the word: R A J A → tap A, J, A, R → A J A R. The blinking letter marks the next square.',
+  Widget build(BuildContext context) {
+    final steps = [
+      'Unscramble each word. Tap its letters in order: R A J A → tap A, J, A, R → A J A R. '
+          'Or drag a letter to where it goes. A word fills with colour once it is right.',
+      'Tap a formed letter to go back to it. '
+          '${Theme.of(context).platform == TargetPlatform.macOS ? 'On a keyboard, type letters and press Backspace to undo.' : 'Shake the phone to mix the unsolved letters again.'}',
+      'The circled letters drop into the answer row at the bottom.',
+      'Swipe to the cartoon, read the riddle, and arrange the circled letters into the answer.',
+      'Stuck? A hint fills in a word, but costs points. The faster you finish, the more you score.',
+    ];
+    return Column(
+      children: [
+        for (final (i, step) in steps.indexed) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _Step(number: i + 1, text: step),
+        ],
+      ],
+    );
+  }
+}
+
+class _Step extends StatelessWidget {
+  const _Step({required this.number, required this.text});
+  final int number;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: p.accent, shape: BoxShape.circle),
+          child: Text(
+            '$number',
+            style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1C1B19)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(text, style: TextStyle(color: p.ink, height: 1.35)),
+        ),
+      ],
+    );
+  }
+}
+
+/// The one thing to do before a puzzle: Start, pinned under the rules so it
+/// is always in view.
+class StartBar extends StatelessWidget {
+  const StartBar({super.key, required this.game});
+  final GameController game;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: p.paper,
+        border: Border(top: BorderSide(color: p.rule)),
       ),
-      const SizedBox(height: 8),
-      const _Rule(
-        icon: Icons.swipe_rounded,
-        text: 'Or drag a letter to where it goes; the others slide along. Tap a formed letter to go back to it. A word fills with colour once it is right.',
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: FilledButton.icon(
+          onPressed: game.start,
+          icon: const Icon(Icons.play_arrow_rounded),
+          label: Text(game.playedBefore ? 'Play Again (No Points)' : 'Start Puzzle'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(56),
+            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+        ),
       ),
-      const SizedBox(height: 8),
-      _Rule(
-        icon: Icons.vibration_rounded,
-        text: Theme.of(context).platform == TargetPlatform.macOS
-            ? 'On a keyboard: type letters to form the word, Backspace to undo one, Tab to switch rows.'
-            : 'Shake the phone to mix the unsolved letters again.',
-      ),
-      const SizedBox(height: 8),
-      const _Rule(
-        icon: Icons.circle_outlined,
-        text: 'Circled letters drop into the answer row. Swipe to the cartoon for the riddle.',
-      ),
-    ],
-  );
+    );
+  }
 }
 
 /// Asks before the solution is shown: doing so ends the run with no points.

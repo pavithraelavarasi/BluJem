@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:no_screenshot/no_screenshot.dart';
 import 'package:provider/provider.dart';
 
 import 'admin/admin_service.dart';
@@ -42,6 +43,10 @@ Future<void> main() async {
   final hints = HintService(api, () => auth.signedIn);
   final game = GameController(library: library, records: records, scores: scores, hints: hints);
   final feedback = GameFeedback(store);
+  unawaited(feedback.preload());
+  // The plugin remembers protection across launches; only the game screen
+  // turns it on, so the app always starts with it off.
+  unawaited(NoScreenshot.instance.screenshotOn().catchError((Object _) => false));
   unawaited(auth.start());
   // "A new BluJem is out", pushed when the admin publishes and when a timed slot opens.
   unawaited(PuzzleReminders(onPuzzleOut: () => unawaited(library.sync())).start());

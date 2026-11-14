@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:no_screenshot/no_screenshot.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -50,6 +51,9 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // No screenshots or recordings of the board: the puzzle stays a puzzle.
+    // Sharing a win goes through its own card, drawn without the answer.
+    unawaited(NoScreenshot.instance.screenshotOff().catchError((Object _) => false));
     game.onSound = feedback.play;
     game.onHintUnavailable = () {
       if (!mounted) return;
@@ -64,6 +68,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    unawaited(NoScreenshot.instance.screenshotOn().catchError((Object _) => false));
     WidgetsBinding.instance.removeObserver(this);
     game.removeListener(_onGame);
     _shake.stop();
@@ -238,54 +243,66 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
   Widget _beforeStart(BuildContext context) {
     final library = context.read<PuzzleLibrary>();
     final p = context.palette;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (game.awaitingToday && !library.checked)
-              const Padding(
-                padding: EdgeInsets.all(48),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (game.awaitingToday)
-              NoticeCard(
-                icon: Icons.hourglass_top_rounded,
-                title: "Today's puzzle isn't up yet",
-                body: "It hasn't been published yet. We'll check every minute and switch to it as soon as it's here.",
-                action: TextButton.icon(
-                  onPressed: library.syncing ? null : library.sync,
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: Text(library.syncing ? 'Checking…' : 'Check again'),
-                ),
-              )
-            else ...[
-              if (game.standingIn) ...[
-                NoticeCard(
-                  icon: Icons.schedule_rounded,
-                  title: "Today's puzzle isn't up yet",
-                  body: game.playedBefore
-                      ? 'You already finished ${library.standInDayName()} puzzle. You can play it again for fun — no points this time.'
-                      : "Here's ${library.standInDayName()} puzzle to play while you wait. We'll switch to today's when it's ready.",
-                ),
-                const SizedBox(height: 16),
-              ],
-              StartCard(
-                game: game,
-                fromDay: game.isDaySlot && !game.standingIn ? null : longDate(game.puzzle.publishDate),
-                pointsOn: game.scores.available && !game.playedBefore,
+    final canStart = !game.awaitingToday;
+    return Column(
+      children: [
+        Expanded(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (game.awaitingToday && !library.checked)
+                    const Padding(
+                      padding: EdgeInsets.all(48),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (game.awaitingToday)
+                    NoticeCard(
+                      icon: Icons.hourglass_top_rounded,
+                      title: "Today's puzzle isn't up yet",
+                      body: "It hasn't been published yet. We'll check every minute and switch to it as soon as it's here.",
+                      action: TextButton.icon(
+                        onPressed: library.syncing ? null : library.sync,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(library.syncing ? 'Checking…' : 'Check again'),
+                      ),
+                    )
+                  else ...[
+                    if (game.standingIn) ...[
+                      NoticeCard(
+                        icon: Icons.schedule_rounded,
+                        title: "Today's puzzle isn't up yet",
+                        body: game.playedBefore
+                            ? 'You already finished ${library.standInDayName()} puzzle. You can play it again for fun — no points this time.'
+                            : "Here's ${library.standInDayName()} puzzle to play while you wait. We'll switch to today's when it's ready.",
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    StartCard(
+                      game: game,
+                      fromDay: game.isDaySlot && !game.standingIn ? null : longDate(game.puzzle.publishDate),
+                      pointsOn: game.scores.available && !game.playedBefore,
+                    ),
+                  ],
+                  if (game.awaitingToday) ...[
+                    const SizedBox(height: 16),
+                    Text('While you wait', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Text('Open an earlier puzzle from History.', style: TextStyle(color: p.inkSoft)),
+                  ],
+                ],
               ),
-            ],
-            if (game.awaitingToday) ...[
-              const SizedBox(height: 16),
-              Text('While you wait', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Text('Open an earlier puzzle from History.', style: TextStyle(color: p.inkSoft)),
-            ],
-          ],
+            ),
+          ),
         ),
-      ),
+        if (canStart)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: StartBar(game: game),
+          ),
+      ],
     );
   }
 

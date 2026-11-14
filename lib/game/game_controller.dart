@@ -12,7 +12,7 @@ import '../models/puzzle.dart';
 import '../models/records.dart';
 import 'board.dart';
 
-enum GameSound { key, solved, complete }
+enum GameSound { key, solved, complete, start, shuffle, timeout }
 
 enum RunStatus { notStarted, inProgress, completed }
 
@@ -251,6 +251,7 @@ class GameController extends ChangeNotifier {
       notifyListeners();
     });
     started = true;
+    onSound?.call(GameSound.start);
     _expiresAt = _now + puzzle.timeLimitSeconds * 1000;
     remainingSeconds = puzzle.timeLimitSeconds;
     _startTicker();
@@ -284,6 +285,7 @@ class GameController extends ChangeNotifier {
       // Time's up: the clock stops for good and play goes on, unscored by time.
       remainingSeconds = 0;
       timedOut = true;
+      onSound?.call(GameSound.timeout);
       _ticker?.cancel();
       changed = true;
     } else {
@@ -336,14 +338,20 @@ class GameController extends ChangeNotifier {
 
   void resetRow(int rowId) => _play(board.reset(rowId));
 
-  void shuffleRow(int rowId) => _play(board.shuffle(rowId, _random));
+  void shuffleRow(int rowId) {
+    final before = board;
+    _play(board.shuffle(rowId, _random));
+    if (!identical(before, board)) onSound?.call(GameSound.shuffle);
+  }
 
   /// The phone shaken: every unsolved word jumbled again; the timer, hints,
   /// solved words and answer row are untouched. True when anything moved.
   bool rescramble() {
     final before = board;
     _play(board.rescramble(_random));
-    return !identical(before, board);
+    final moved = !identical(before, board);
+    if (moved) onSound?.call(GameSound.shuffle);
+    return moved;
   }
 
   void revealRow(int rowId) {

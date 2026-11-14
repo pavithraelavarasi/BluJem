@@ -30,7 +30,14 @@ class HomeScreen extends StatelessWidget {
     final records = context.watch<RecordsRepository>();
     final account = context.watch<AuthRepository>().account;
     final stats = records.stats;
-    final day = library.dayPuzzle;
+    // The puzzle for now: the slot open at this hour (the night one after
+    // 9 PM). Once that is solved, the latest of today's still to play, so a
+    // player who comes late in the day is led through all of them.
+    final current = library.dayPuzzle;
+    final isToday = library.dayKind == DayKind.today;
+    final day = isToday && records.finished(current.id)
+        ? library.todaysPuzzles.lastWhere((p) => !records.finished(p.id), orElse: () => current)
+        : current;
 
     // Where the day's sheet stands: from the board when it is the one in
     // play, otherwise from what this player has finished.
@@ -81,7 +88,7 @@ class HomeScreen extends StatelessWidget {
         'Your run is underway — the clock is waiting.',
         'Continue · ${day.slotKind.label}',
       ),
-      _ => (slotName, 'Unscramble the words, then crack the cartoon riddle.', 'Play now · ${day.slotKind.label}'),
+      _ => (slotName, 'Unscramble the words, then crack the cartoon riddle.', 'Start Puzzle · ${day.slotKind.label}'),
     };
 
     // The card above already opens the day's puzzle, so the list shows only
@@ -125,7 +132,7 @@ class HomeScreen extends StatelessWidget {
                 slot: awaiting ? null : day.slotKind.heading,
                 difficulty: day.difficulty,
                 minutes: day.timeLimitSeconds ~/ 60,
-                onPlay: onPlayToday,
+                onPlay: isToday ? () => onOpen(day) : onPlayToday,
               ),
               if (otherSlots.isNotEmpty) ...[
                 const SizedBox(height: 20),
