@@ -32,8 +32,10 @@ class RecordsRepository extends ChangeNotifier {
     notifyListeners();
     if (accountId == null) return;
     final reply = await _api.tryPost(JumbleFunction.data, 'completions/list');
+    // An empty list is the server's answer too (a fresh account, or scores
+    // reset): only a failed call leaves the device's copy as it was.
     final rows = reply?['completions'] as List?;
-    if (rows == null || rows.isEmpty) return;
+    if (rows == null) return;
     _write([for (final r in rows.whereType<Map>()) Completion.fromJson(Map<String, dynamic>.from(r))]);
   }
 
