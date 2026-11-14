@@ -69,3 +69,6 @@ node_modules/
 
 # Which pictures each emulator/simulator already has (tools/sync_images.sh)
 tools/.image-sync/
+
+# Android build output
+/android/build/
