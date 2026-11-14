@@ -66,3 +66,6 @@ node_modules/
 *.apk
 *.aab
 *.ipa
+
+# Which pictures each emulator/simulator already has (tools/sync_images.sh)
+tools/.image-sync/
