@@ -221,6 +221,11 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                 const SizedBox(width: 6),
               ],
               if (playing) ClockChip(game: game),
+              IconButton(
+                tooltip: 'How to play',
+                onPressed: () => showHowToPlay(context, pointsOn: game.scores.available && !game.playedBefore),
+                icon: const Icon(Icons.help_outline_rounded),
+              ),
               _MoreMenu(game: game, feedback: feedback, playing: playing),
             ],
           ),

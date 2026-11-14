@@ -133,8 +133,9 @@ class NoticeCard extends StatelessWidget {
   }
 }
 
-/// Before Start: the cartoon kept out of focus, the time allowed and how to
-/// play. The Start button is [StartBar], pinned below, always in view.
+/// Before Start: the cartoon kept out of focus and the time allowed. How to
+/// play is behind the help button ([showHowToPlay]); the Start button is
+/// [StartBar], pinned below, always in view.
 class StartCard extends StatelessWidget {
   const StartCard({super.key, required this.game, required this.fromDay, required this.pointsOn});
   final GameController game;
@@ -164,16 +165,6 @@ class StartCard extends StatelessWidget {
                   child: Image(image: sheetProvider(puzzle.image), fit: BoxFit.cover),
                 ),
                 Container(color: p.card.withValues(alpha: 0.35)),
-                Center(
-                  child: Wrap(
-                    spacing: 8,
-                    children: [
-                      _Badge(text: puzzle.difficulty, color: p.accent),
-                      _Badge(text: '$minutes min', color: p.card),
-                      _Badge(text: '${puzzle.words.length} words', color: p.card),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -192,11 +183,6 @@ class StartCard extends StatelessWidget {
                   style: TextStyle(color: p.inkSoft, height: 1.4),
                 ),
                 if (pointsOn) ...[
-                  const SizedBox(height: 12),
-                  _Rule(
-                    icon: Icons.bolt_rounded,
-                    text: 'Finish fast for more points: 5x inside a minute, then 4x, 3x and 2x by 1:30, 2:00 and 3:00.',
-                  ),
                   if (game.earnsHalf) ...[
                     const SizedBox(height: 8),
                     const _Rule(
@@ -205,10 +191,6 @@ class StartCard extends StatelessWidget {
                     ),
                   ],
                 ],
-                const SizedBox(height: 18),
-                Text('How to play', style: t.titleMedium),
-                const SizedBox(height: 10),
-                const HowToPlay(),
                 if (canShareWin(game)) ...[const SizedBox(height: 12), ShareWinButton(game: game)],
                 if (game.earnsHalf || game.playedBefore) ...[
                   const SizedBox(height: 8),
@@ -220,12 +202,6 @@ class StartCard extends StatelessWidget {
                     label: const Text('Just show me the answers'),
                   ),
                 ],
-                const SizedBox(height: 10),
-                Text(
-                  'Leave the app and the countdown waits for you.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: p.inkFaint, fontSize: 13),
-                ),
               ],
             ),
           ),
@@ -235,7 +211,43 @@ class StartCard extends StatelessWidget {
   }
 }
 
-/// The game's rules as numbered steps, shown before every start.
+/// How to play, with the points rule, in a sheet: opened from the help
+/// button at the top of the game screen.
+Future<void> showHowToPlay(BuildContext context, {required bool pointsOn}) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  showDragHandle: true,
+  builder: (sheet) => SafeArea(
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheet).height * 0.85),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('How to play', style: Theme.of(sheet).textTheme.headlineSmall),
+            const SizedBox(height: 16),
+            const HowToPlay(),
+            if (pointsOn) ...[
+              const SizedBox(height: 16),
+              const _Rule(
+                icon: Icons.bolt_rounded,
+                text: 'Finish fast for more points: 5x inside a minute, then 4x, 3x and 2x by 1:30, 2:00 and 3:00.',
+              ),
+            ],
+            const SizedBox(height: 12),
+            const _Rule(
+              icon: Icons.pause_circle_outline_rounded,
+              text: 'Leave the app and the countdown waits for you.',
+            ),
+          ],
+        ),
+      ),
+    ),
+  ),
+);
+
+/// The game's rules as numbered steps.
 class HowToPlay extends StatelessWidget {
   const HowToPlay({super.key});
 
@@ -311,9 +323,14 @@ class StartBar extends StatelessWidget {
           onPressed: game.start,
           icon: const Icon(Icons.play_arrow_rounded),
           label: Text(game.playedBefore ? 'Play Again (No Points)' : 'Start Puzzle'),
+          // The game's gold, so it stands out as the one thing to do.
           style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(56),
-            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            minimumSize: const Size.fromHeight(60),
+            backgroundColor: p.accent,
+            foregroundColor: const Color(0xFF1C1B19),
+            elevation: 4,
+            shadowColor: p.accent,
+            textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
         ),
       ),
@@ -359,22 +376,6 @@ class _Rule extends StatelessWidget {
       ],
     );
   }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.text, required this.color});
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
-    child: Text(
-      text,
-      style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1C1B19)),
-    ),
-  );
 }
 
 /// The hints so far for one row, the next on request, and the answer for a
