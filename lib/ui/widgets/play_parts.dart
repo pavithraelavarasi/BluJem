@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
 import '../../core/dates.dart';
+import '../../core/slots.dart';
 import '../../game/board.dart';
 import '../../game/game_controller.dart';
+import '../../models/puzzle.dart';
 import '../../models/records.dart';
 import '../share_card.dart';
 import '../theme.dart';
@@ -133,7 +136,8 @@ class NoticeCard extends StatelessWidget {
   }
 }
 
-/// Before Start: the cartoon kept out of focus and the time allowed. How to
+/// Before Start: the cartoon with parts covered, its riddle line, and the
+/// time allowed. How to
 /// play is behind the help button ([showHowToPlay]); the Start button is
 /// [StartBar], pinned below, always in view.
 class StartCard extends StatelessWidget {
@@ -155,24 +159,14 @@ class StartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            height: 150,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ImageFiltered(
-                  imageFilter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                  child: Image(image: sheetProvider(puzzle.image), fit: BoxFit.cover),
-                ),
-                Container(color: p.card.withValues(alpha: 0.35)),
-              ],
-            ),
-          ),
+          CartoonTeaser(puzzle: puzzle),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(teaserLine(puzzle), style: t.titleMedium?.copyWith(fontStyle: FontStyle.italic, height: 1.35)),
+                const SizedBox(height: 14),
                 Text(game.playedBefore ? 'Play it again?' : 'Ready?', style: t.headlineSmall),
                 const SizedBox(height: 6),
                 Text(
@@ -207,6 +201,121 @@ class StartCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// One line about [puzzle] for the start screen: its riddle when the admin
+/// typed one, otherwise a nudge for its slot (the riddle is then printed in
+/// the cartoon itself).
+String teaserLine(Puzzle puzzle) {
+  final clue = puzzle.finalClue.trim();
+  if (clue.isNotEmpty) return '“$clue”';
+  return switch (puzzle.slotKind) {
+    Slot.morning => 'This morning’s cartoon is hiding a pun. Can you crack it?',
+    Slot.evening => 'This afternoon’s cartoon is hiding a pun. Can you crack it?',
+    Slot.night => 'Tonight’s cartoon is hiding a pun. Can you crack it?',
+    Slot.sunday => 'Sunday’s Mega Jumble: six words and a bigger riddle. Can you crack it?',
+  };
+}
+
+/// The cartoon as a thumbnail with three parts frosted over and a question
+/// mark on each, the same ones every time: enough to want to play, not
+/// enough to solve it before the clock starts.
+class CartoonTeaser extends StatelessWidget {
+  const CartoonTeaser({super.key, required this.puzzle});
+  final Puzzle puzzle;
+
+  /// Where covers may go, as fractions of the cartoon; three are picked.
+  static const _spots = [
+    Offset(0.27, 0.3),
+    Offset(0.73, 0.32),
+    Offset(0.3, 0.68),
+    Offset(0.72, 0.7),
+    Offset(0.5, 0.48),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return FutureBuilder<LoadedSheet>(
+      future: loadSheet(puzzle),
+      builder: (context, snap) {
+        final sheet = snap.data;
+        if (sheet == null) {
+          return Container(
+            height: 180,
+            color: p.sunken,
+            alignment: Alignment.center,
+            child: snap.hasError
+                ? Icon(Icons.image_outlined, color: p.inkFaint, size: 40)
+                : const CircularProgressIndicator(),
+          );
+        }
+        final seed = puzzle.id.codeUnits.fold(0, (sum, c) => sum * 31 + c & 0x7fffffff);
+        final spots = [..._spots]..shuffle(Random(seed));
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 280),
+          child: Center(
+            child: Builder(
+              builder: (context) {
+                final crop = SheetCrop(image: sheet.image, region: sheet.cartoon);
+                return AspectRatio(
+                  aspectRatio: crop.aspect,
+                  child: LayoutBuilder(
+                    builder: (context, size) {
+                      final r = min(size.maxWidth, size.maxHeight) * 0.16;
+                      return Stack(
+                        children: [
+                          Positioned.fill(child: crop),
+                          for (final spot in spots.take(3))
+                            Positioned(
+                              left: spot.dx * size.maxWidth - r,
+                              top: spot.dy * size.maxHeight - r,
+                              width: r * 2,
+                              height: r * 2,
+                              child: ClipOval(
+                                child: BackdropFilter(
+                                  filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white.withValues(alpha: 0.35),
+                                      border: Border.all(color: const Color(0xFF1E6FE0), width: 3),
+                                    ),
+                                    child: Center(
+                                      child: Container(
+                                        width: r * 0.8,
+                                        height: r * 0.8,
+                                        alignment: Alignment.center,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF1E6FE0),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Text(
+                                          '?',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: r * 0.55,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
