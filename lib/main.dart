@@ -20,6 +20,7 @@ import 'data/records_repository.dart';
 import 'data/score_repository.dart';
 import 'data/social_sign_in.dart';
 import 'game/game_controller.dart';
+import 'ui/screens/play_screen.dart';
 import 'ui/app.dart';
 import 'ui/feedback.dart';
 
@@ -45,8 +46,11 @@ Future<void> main() async {
   final feedback = GameFeedback(store);
   unawaited(feedback.preload());
   // The plugin remembers protection across launches; only the game screen
-  // turns it on, so the app always starts with it off.
-  unawaited(NoScreenshot.instance.screenshotOn().catchError((Object _) => false));
+  // turns it on, so the app always starts with it off. On Android the plugin
+  // restores the saved state on a background thread as the app opens, which
+  // can land after this call, so it is said again once Home is drawn.
+  void allowScreenshots() => unawaited(NoScreenshot.instance.screenshotOn().catchError((Object _) => false));
+  allowScreenshots();
   unawaited(auth.start());
   // "A new BluJem is out", pushed when the admin publishes and when a timed slot opens.
   unawaited(PuzzleReminders(onPuzzleOut: () => unawaited(library.sync())).start());
@@ -66,5 +70,10 @@ Future<void> main() async {
       ],
       child: const BluJemApp(),
     ),
+  );
+  WidgetsBinding.instance.addPostFrameCallback(
+    (_) => Timer(const Duration(seconds: 1), () {
+      if (!PlayScreen.open) allowScreenshots();
+    }),
   );
 }

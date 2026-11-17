@@ -25,6 +25,9 @@ class PlayScreen extends StatefulWidget {
   const PlayScreen({super.key, required this.onOpenLeaderboard});
   final VoidCallback onOpenLeaderboard;
 
+  /// Whether a game is on screen, so nothing else lifts its screenshot block.
+  static bool open = false;
+
   @override
   State<PlayScreen> createState() => _PlayScreenState();
 }
@@ -53,6 +56,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // No screenshots or recordings of the board: the puzzle stays a puzzle.
     // Sharing a win goes through its own card, drawn without the answer.
+    PlayScreen.open = true;
     unawaited(NoScreenshot.instance.screenshotOff().catchError((Object _) => false));
     game.onSound = feedback.play;
     game.onHintUnavailable = () {
@@ -68,6 +72,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    PlayScreen.open = false;
     unawaited(NoScreenshot.instance.screenshotOn().catchError((Object _) => false));
     WidgetsBinding.instance.removeObserver(this);
     game.removeListener(_onGame);
