@@ -362,30 +362,13 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                   onPageChanged: _onPageChanged,
                   children: [
                     _wordsPage(context, active),
+                    // The cartoon gets the whole page down to the answer row,
+                    // as large as it fits without cropping.
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
                       child: CartoonView(puzzle: puzzle),
                     ),
                   ],
-                ),
-              ),
-              // The clue keeps its room on the Cartoon page, whose cartoon
-              // carries its own caption, so the answer row never moves.
-              AnimatedOpacity(
-                opacity: _page == 0 ? 1 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: ExcludeSemantics(
-                  excluding: _page != 0,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
-                    child: Text(
-                      puzzle.finalClue,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: clueStyle(p),
-                    ),
-                  ),
                 ),
               ),
               Padding(
@@ -441,7 +424,9 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
     // Every word's squares are the size the longest word's need, so a
     // six-letter word does not get smaller letters than a five.
     final longest = board.words.fold<int>(0, (a, w) => max(a, w.length));
-    return LayoutBuilder(
+    // The clue sits under the words on this page only: the cartoon carries
+    // its own caption, so its page gives the room to the picture.
+    final words = LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -469,6 +454,21 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
           ),
         );
       },
+    );
+    return Column(
+      children: [
+        Expanded(child: words),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
+          child: Text(
+            game.puzzle.finalClue,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: clueStyle(p),
+          ),
+        ),
+      ],
     );
   }
 }
