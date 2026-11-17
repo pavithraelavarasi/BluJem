@@ -44,7 +44,7 @@ class WinCard {
   /// drawn, as blank squares: the card must not spoil the puzzle.
   final String answer;
 
-  /// "Today's Word Jumble", or "Word Jumble" for an earlier day's.
+  /// "Today's BluJem", or "BluJem" for an earlier day's.
   final String title;
 
   /// "Morning · Mon, Nov 9".
@@ -91,7 +91,7 @@ Future<void> shareWin(BuildContext context, GameController game) async {
       sheet: sheet.image,
       cartoon: sheet.cartoon,
       answer: answer,
-      title: today ? "Today's Word Jumble" : 'Word Jumble',
+      title: today ? "Today's BluJem" : 'BluJem',
       seed: puzzle.id.codeUnits.fold(0, (sum, c) => sum * 31 + c & 0x7fffffff),
       heading: '${puzzle.slotKind.label} · ${dayLabel(puzzle.publishDate)}',
       seconds: seconds,
@@ -107,7 +107,7 @@ Future<void> shareWin(BuildContext context, GameController game) async {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: 'I solved ${today ? "today's" : 'a'} BluJem Word Jumble$time! Can you beat my time? $appDownloadUrl',
+        text: 'I solved ${today ? "today's" : 'a'} BluJem puzzle$time! Can you beat my time? $appDownloadUrl',
         subject: 'I solved BluJem',
         sharePositionOrigin: origin,
       ),
@@ -134,7 +134,7 @@ Future<void> shareApp(BuildContext context, {PlayerStats? stats}) async {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: 'Play BluJem with me — a new word jumble every morning, afternoon and night! $appDownloadUrl',
+        text: 'Play BluJem with me — a new puzzle every morning, afternoon and night! $appDownloadUrl',
         subject: 'Play BluJem with me',
         sharePositionOrigin: origin,
       ),
@@ -277,7 +277,7 @@ double paintWinCard(Canvas canvas, WinCard card) {
     footerTop,
     footerHeight,
     'Can you solve it?',
-    'A new BluJem word jumble every day. Scan to get the free Android app.',
+    'A new BluJem puzzle every day. Scan to get the free Android app.',
   );
   return height;
 }
@@ -294,7 +294,7 @@ Future<Uint8List> renderAppCard(AppCard card) async {
 /// What a day of BluJem holds, for the app card.
 const _features = [
   ('3 new puzzles a day', 'Morning, afternoon and night'),
-  ('Sunday Mega Jumble', 'Six words and a bigger riddle'),
+  ('Sunday Mega BluJem', 'Six words and a bigger riddle'),
   ('Win daily medals', 'Gold, silver and bronze'),
   ('Climb the leaderboard', 'Race friends against the clock'),
 ];
@@ -326,10 +326,10 @@ double paintAppCard(Canvas canvas, AppCard card) {
 
   canvas.drawRect(Rect.fromLTWH(0, 0, _width, height), Paint()..color = _paper);
   _image(canvas, card.logo, Rect.fromLTWH((_width - logoWidth) / 2, logoTop, logoWidth, logoHeight));
-  _text(canvas, 'The daily word jumble', taglineTop, size: 54, weight: FontWeight.w700, color: _blue);
+  _text(canvas, 'The daily word puzzle', taglineTop, size: 54, weight: FontWeight.w700, color: _blue);
 
-  // JUMBLE in the game's tiles, each tipped a little, like letters to sort.
-  const word = 'JUMBLE';
+  // BLUJEM in the game's tiles, each tipped a little, like letters to sort.
+  const word = 'BLUJEM';
   const gap = 18.0;
   var x = (_width - (word.length * tile + (word.length - 1) * gap)) / 2;
   for (var i = 0; i < word.length; i++) {

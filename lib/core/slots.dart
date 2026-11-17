@@ -12,7 +12,7 @@ enum Slot {
   morning(9, 4, 'Morning', opensOnPublish: true),
   evening(15, 4, 'Afternoon'),
   night(21, 4, 'Night'),
-  sunday(6, 6, 'Mega Jumble', opensOnPublish: true);
+  sunday(6, 6, 'Mega BluJem', opensOnPublish: true);
 
   const Slot(this.hour, this.words, this.label, {this.opensOnPublish = false});
 
@@ -59,7 +59,7 @@ String indiaDate(DateTime now) => DateFormat('yyyy-MM-dd').format(now.toUtc().ad
 /// Why [slot] cannot be on [isoDate], or null when it can.
 String? slotProblem(String isoDate, Slot slot) {
   if (DateTime.tryParse(isoDate) == null) return 'Choose a date.';
-  if (isSunday(isoDate) && slot != Slot.sunday) return 'Sunday has only the Mega Jumble.';
-  if (!isSunday(isoDate) && slot == Slot.sunday) return 'Only Sunday has the Mega Jumble.';
+  if (isSunday(isoDate) && slot != Slot.sunday) return 'Sunday has only the Mega BluJem.';
+  if (!isSunday(isoDate) && slot == Slot.sunday) return 'Only Sunday has the Mega BluJem.';
   return null;
 }

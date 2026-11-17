@@ -25,7 +25,7 @@ const COLLAGE = {
 	instructions: {
 		/** The printed instructions, which say how many words there are. */
 		lines: (count) => [
-			'Unscramble these jumbles, one letter to each square,',
+			'Unscramble these words, one letter to each square,',
 			`to form ${NUMBER_WORDS[count] || count} ordinary words.`,
 			'Then arrange the circled letters to form the surprise',
 			'answer, as suggested by the above cartoon.'

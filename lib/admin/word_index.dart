@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 /// Each line is a three-digit rank and the word, `016PARTY`: lower is
 /// commoner, and 999 means the word is not on the ranked list at all. Words
 /// of three to eight letters are ranked, as Jumble words are never longer;
-/// longer ones, unranked, are there for the Sunday Jumble's long answers.
+/// longer ones, unranked, are there for the Sunday BluJem's long answers.
 class WordIndex {
   WordIndex(Iterable<String> lines) {
     for (final line in lines) {

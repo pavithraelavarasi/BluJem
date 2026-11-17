@@ -53,7 +53,7 @@ function dueAtTimer(rows, now = Date.now()) {
 /** What the notification says for [row]. */
 function messageFor(row) {
 	const slot = slotOf(row);
-	if (slot === 'sunday') return { title: "Sunday's Mega Jumble is out", body: 'Six words and a cartoon riddle — tap to play.' };
+	if (slot === 'sunday') return { title: "Sunday's Mega BluJem is out", body: 'Six words and a cartoon riddle — tap to play.' };
 	const when = { morning: "This morning's", evening: "This afternoon's", night: "Tonight's" }[slot];
 	return { title: `${when} BluJem is out`, body: 'Four new words and a cartoon riddle — tap to play.' };
 }

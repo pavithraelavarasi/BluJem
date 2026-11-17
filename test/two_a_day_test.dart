@@ -205,7 +205,7 @@ void main() {
       expect(Slot.evening.heading, 'Afternoon · 3:00 PM');
       expect(Slot.night.heading, 'Night · 9:00 PM');
       expect(Slot.morning.heading, 'Morning');
-      expect(Slot.sunday.heading, 'Mega Jumble');
+      expect(Slot.sunday.heading, 'Mega BluJem');
       expect([for (final s in Slot.values) s.opensOnPublish], [true, false, false, true]);
     });
   });

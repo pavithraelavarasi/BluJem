@@ -209,11 +209,11 @@ String teaserLine(Puzzle puzzle) => switch (puzzle.slotKind) {
   Slot.morning => 'This morning’s cartoon is hiding a pun. Can you crack it?',
   Slot.evening => 'This afternoon’s cartoon is hiding a pun. Can you crack it?',
   Slot.night => 'Tonight’s cartoon is hiding a pun. Can you crack it?',
-  Slot.sunday => 'Sunday’s Mega Jumble: six words and a bigger riddle. Can you crack it?',
+  Slot.sunday => 'Sunday’s Mega BluJem: six words and a bigger riddle. Can you crack it?',
 };
 
 /// The start screen's picture: artwork for the puzzle's slot — a sunrise,
-/// an afternoon sun, a night sky, Sunday's big day — with JUMBLE in tipped
+/// an afternoon sun, a night sky, Sunday's big day — with BLUJEM in tipped
 /// tiles. Nothing of the puzzle itself, so no one sees the cartoon or its
 /// riddle before the clock starts.
 class StartArt extends StatelessWidget {
@@ -223,10 +223,10 @@ class StartArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (colors, icon, label) = switch (puzzle.slotKind) {
-      Slot.morning => (const [Color(0xFFFFD39B), Color(0xFFFF9E7A)], Icons.wb_sunny_rounded, 'MORNING JUMBLE'),
-      Slot.evening => (const [Color(0xFF9FD8FF), Color(0xFFFFC56E)], Icons.wb_twilight_rounded, 'AFTERNOON JUMBLE'),
-      Slot.night => (const [Color(0xFF1B2A5C), Color(0xFF5B3D8F)], Icons.nights_stay_rounded, 'NIGHT JUMBLE'),
-      Slot.sunday => (const [Color(0xFF1E6FE0), Color(0xFF7A4CE0)], Icons.auto_awesome_rounded, 'SUNDAY MEGA JUMBLE'),
+      Slot.morning => (const [Color(0xFFFFD39B), Color(0xFFFF9E7A)], Icons.wb_sunny_rounded, 'MORNING BLUJEM'),
+      Slot.evening => (const [Color(0xFF9FD8FF), Color(0xFFFFC56E)], Icons.wb_twilight_rounded, 'AFTERNOON BLUJEM'),
+      Slot.night => (const [Color(0xFF1B2A5C), Color(0xFF5B3D8F)], Icons.nights_stay_rounded, 'NIGHT BLUJEM'),
+      Slot.sunday => (const [Color(0xFF1E6FE0), Color(0xFF7A4CE0)], Icons.auto_awesome_rounded, 'SUNDAY MEGA BLUJEM'),
     };
     final dark = puzzle.slotKind == Slot.night || puzzle.slotKind == Slot.sunday;
     final ink = dark ? Colors.white : const Color(0xFF1C1B19);
@@ -252,7 +252,7 @@ class StartArt extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (final (i, c) in 'JUMBLE'.split('').indexed)
+                  for (final (i, c) in 'BLUJEM'.split('').indexed)
                     Transform.rotate(
                       angle: (i.isEven ? -1 : 1) * 0.09,
                       child: Container(

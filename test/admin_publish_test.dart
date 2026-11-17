@@ -415,7 +415,7 @@ void main() {
     await tester.pump();
     expect(find.text('Publish for ${longDate(yesterday)}'), findsOneWidget);
     expect(
-      find.textContaining(RegExp('${monthDay(DateTime.parse(yesterday))} (morning|mega jumble) is published now')),
+      find.textContaining(RegExp('${monthDay(DateTime.parse(yesterday))} (morning|mega blujem) is published now')),
       findsOneWidget,
     );
     await tester.pumpWidget(const SizedBox());

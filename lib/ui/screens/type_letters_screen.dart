@@ -19,7 +19,7 @@ class TypeLettersScreen extends StatefulWidget {
 
   final DateTime date;
 
-  /// Its slot: four words, or six for Sunday's Mega Jumble.
+  /// Its slot: four words, or six for Sunday's Mega BluJem.
   final Slot slot;
 
   @override

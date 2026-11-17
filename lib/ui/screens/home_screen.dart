@@ -14,7 +14,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 
 /// Today at a glance: the newest puzzle out, every slot of today's (morning
-/// afternoon and night, or Sunday's Mega Jumble) with when a locked one opens, and
+/// afternoon and night, or Sunday's Mega BluJem) with when a locked one opens, and
 /// the streak.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onPlayToday, required this.onOpen});
@@ -74,12 +74,12 @@ class HomeScreen extends StatelessWidget {
       (_, true, RunStatus.inProgress) => (
         "Today's puzzle isn't up yet",
         'Carry on with ${library.standInDayName()} puzzle while you wait.',
-        "Continue ${_title(library.standInDayName())} Jumble",
+        "Continue ${_title(library.standInDayName())} BluJem",
       ),
       (_, true, _) => (
         "Today's puzzle isn't up yet",
         'Play ${library.standInDayName()} puzzle while you wait.',
-        "Play ${_title(library.standInDayName())} Jumble",
+        "Play ${_title(library.standInDayName())} BluJem",
       ),
       (_, _, RunStatus.completed) => (
         '$slotName: done!',
@@ -200,13 +200,13 @@ class HomeScreen extends StatelessWidget {
       ? 'there'
       : (name ?? '').trim().split(RegExp(r'[\s@]')).first;
 
-  /// "This morning's jumble", "Sunday Mega Jumble", "Today's jumble".
+  /// "This morning's BluJem", "Sunday Mega BluJem", "Today's BluJem".
   static String _slotName(Puzzle day) => switch (Slot.tryParse(day.slot)) {
-    Slot.morning => "This morning's jumble",
-    Slot.evening => "This afternoon's jumble",
-    Slot.night => "Tonight's jumble",
-    Slot.sunday => 'Sunday Mega Jumble',
-    null => "Today's jumble",
+    Slot.morning => "This morning's BluJem",
+    Slot.evening => "This afternoon's BluJem",
+    Slot.night => "Tonight's BluJem",
+    Slot.sunday => 'Sunday Mega BluJem',
+    null => "Today's BluJem",
   };
 
   /// "yesterday's" → "Yesterday's".

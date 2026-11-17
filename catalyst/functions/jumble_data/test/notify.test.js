@@ -91,7 +91,7 @@ test('the messages name the slot', () => {
 	assert.equal(messageFor(puzzle({ Slot: 'morning' })).title, "This morning's BluJem is out");
 	assert.equal(messageFor(puzzle({ Slot: 'evening' })).title, "This afternoon's BluJem is out");
 	assert.equal(messageFor(puzzle({ Slot: 'night' })).title, "Tonight's BluJem is out");
-	assert.equal(messageFor(puzzle({ Slot: 'sunday', PublishDate: '2026-12-06' })).title, "Sunday's Mega Jumble is out");
+	assert.equal(messageFor(puzzle({ Slot: 'sunday', PublishDate: '2026-12-06' })).title, "Sunday's Mega BluJem is out");
 });
 
 test('the service account is read as JSON or base64, and refused when incomplete', () => {

@@ -94,7 +94,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'A new jumble every day. Keep your streak and climb the leaderboard.',
+                      'A new BluJem puzzle every day. Keep your streak and climb the leaderboard.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: p.inkSoft, height: 1.4),
                     ),

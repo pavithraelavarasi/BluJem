@@ -11,7 +11,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 
 /// Every puzzle there is to play — a weekday's three slots, and Sunday's
-/// Mega Jumble — in two windows: the month's calendar stays put at the top,
+/// Mega BluJem — in two windows: the month's calendar stays put at the top,
 /// and the list under it scrolls on its own. Tapping a day shows just that
 /// day's puzzles in the list; tapping it again shows them all.
 class HistoryScreen extends StatefulWidget {
@@ -101,10 +101,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  /// "Sunday Mega Jumble · Nov 16", or "Sat, Nov 14 · 2 of 3 solved".
+  /// "Sunday Mega BluJem · Nov 16", or "Sat, Nov 14 · 2 of 3 solved".
   String _dayHeading(DateTime day, List<Puzzle> puzzles) {
     final date = dayLabel(isoDate(day));
-    if (day.weekday == DateTime.sunday) return 'Sunday Mega Jumble · ${date.split(', ').last}';
+    if (day.weekday == DateTime.sunday) return 'Sunday Mega BluJem · ${date.split(', ').last}';
     final records = context.read<RecordsRepository>();
     final solved = puzzles.where((p) => records.finished(p.id)).length;
     return '$date · $solved of ${puzzles.length} solved';
@@ -181,7 +181,7 @@ class _Badge extends StatelessWidget {
   );
 }
 
-/// Sunday's Mega Jumble, set apart in blue: its column on the calendar, a
+/// Sunday's Mega BluJem, set apart in blue: its column on the calendar, a
 /// star on its days, and its badge in the list.
 const _mega = Color(0xFF1E6FE0);
 const _megaSoft = Color(0x331E6FE0);
@@ -194,7 +194,7 @@ const _silver = Color(0xFFC3C8CF);
 const _medalInk = Color(0xFF1C1B19);
 
 /// A month: tapping a puzzle day picks it. A day's colour is its medal, the
-/// picked one is ringed in blue, and Sundays carry the Mega Jumble's star.
+/// picked one is ringed in blue, and Sundays carry the Mega BluJem's star.
 class _MonthCalendar extends StatelessWidget {
   const _MonthCalendar({
     required this.month,

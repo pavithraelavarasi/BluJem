@@ -66,7 +66,7 @@ class TypedPuzzle {
         clue.add(line);
       } else {
         if (shape.isNotEmpty) throw FormatException('"$line" comes after the answer boxes — type the words first.');
-        if (!_word.hasMatch(line)) throw FormatException('"$line": a jumbled word can have only letters.');
+        if (!_word.hasMatch(line)) throw FormatException('"$line": a scrambled word can have only letters.');
         if (line.length > maxLetters) {
           throw FormatException('"$line" is too long: a word has at most $maxLetters letters.');
         }

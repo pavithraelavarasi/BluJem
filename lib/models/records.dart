@@ -274,7 +274,7 @@ class Hint {
 }
 
 /// Today's medal for solving [solved] of the day's [ofDay] puzzles: all of
-/// them is Gold (Sunday's one Mega Jumble too), otherwise 2 Silver, 1 Bronze;
+/// them is Gold (Sunday's one Mega BluJem too), otherwise 2 Silver, 1 Bronze;
 /// null before the first.
 String? medalFor(int solved, {int ofDay = 3}) => solved <= 0
     ? null

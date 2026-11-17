@@ -41,7 +41,7 @@ function parsePuzzleText(text, wordCount) {
 			clue.push(line);
 		} else {
 			if (shape.length) throw new PuzzleTextError(`"${line}" comes after the answer boxes — type the words first.`);
-			if (!WORD.test(line)) throw new PuzzleTextError(`"${line}": a jumbled word can have only letters.`);
+			if (!WORD.test(line)) throw new PuzzleTextError(`"${line}": a scrambled word can have only letters.`);
 			if (line.length > MAX_LETTERS) throw new PuzzleTextError(`"${line}" is too long: a word has at most ${MAX_LETTERS} letters.`);
 			words.push({
 				letters: line.toUpperCase(),

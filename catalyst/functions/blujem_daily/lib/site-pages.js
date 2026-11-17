@@ -45,8 +45,8 @@ ${body}
 
 const HOME = page('BluJem', `
 <h1>BluJem</h1>
-<p class="tag">A daily word-jumble puzzle game.</p>
-<p>Every day there is a new puzzle: unscramble four jumbled words, then use the circled letters to solve the riddle that goes with the cartoon.</p>
+<p class="tag">BluJem: a daily word puzzle game.</p>
+<p>Every day there is a new puzzle: unscramble four scrambled words, then use the circled letters to solve the riddle that goes with the cartoon.</p>
 <ul>
 	<li>Tap the letters in the order of the word, or drag a letter to where it goes.</li>
 	<li>Shake the phone to mix the letters again.</li>
@@ -99,7 +99,7 @@ const PRIVACY = page('BluJem Privacy Policy', `
 // download-apk, which signs a fresh link to the latest release each time.
 const DOWNLOAD = page('Get BluJem', `
 <h1>BluJem</h1>
-<p class="tag">A new word jumble every day — free.</p>
+<p class="tag">A new BluJem puzzle every day — free.</p>
 <p><a class="button" href="download-apk">Download for Android</a></p>
 <ol>
 	<li>Tap <strong>Download for Android</strong>.</li>

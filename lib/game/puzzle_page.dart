@@ -120,7 +120,7 @@ class PuzzlePagePainter extends CustomPainter {
     _centred(canvas, 'By David L Hoyt and Jeff Knurek', 190, 30, FontWeight.w700);
     final count = _numbers[layout.scrambles.length] ?? '${layout.scrambles.length}';
     final instructions = [
-      'Unscramble these jumbles, one letter to each square,',
+      'Unscramble these words, one letter to each square,',
       'to form $count ordinary words.',
       'Then arrange the circled letters to form the surprise',
       'answer, as suggested by the above cartoon.',

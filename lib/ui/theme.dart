@@ -25,7 +25,7 @@ class Palette extends ThemeExtension<Palette> {
   final Color paper, card, sunken, ink, inkSoft, inkFaint, rule;
   final Color accent, accentSoft, success, successSoft, warning;
 
-  /// Pink, green, blue, yellow — word 1 to 4 — then the Sunday Jumble's purple
+  /// Pink, green, blue, yellow — word 1 to 4 — then the Sunday BluJem's purple
   /// and orange for words 5 and 6.
   final List<Color> rows;
 
