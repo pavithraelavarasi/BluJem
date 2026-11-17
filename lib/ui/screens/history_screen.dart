@@ -155,9 +155,7 @@ class _PuzzleTile extends StatelessWidget {
         ],
       ),
       subtitle: Text(
-        done
-            ? 'Solved · ${run!.hintsUsed} hint${run!.hintsUsed == 1 ? '' : 's'}'
-            : '${puzzle.slotKind.label} · ${puzzle.words.length} words',
+        done ? 'Solved' : '${puzzle.slotKind.label} · ${puzzle.words.length} words',
         style: TextStyle(color: p.inkSoft),
       ),
       trailing: Icon(done ? Icons.replay_rounded : Icons.play_arrow_rounded, color: p.ink),

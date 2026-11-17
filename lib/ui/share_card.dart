@@ -32,7 +32,6 @@ class WinCard {
     required this.heading,
     this.seed = 0,
     this.seconds,
-    this.hints = 0,
     this.points,
   });
 
@@ -55,17 +54,13 @@ class WinCard {
 
   /// The solve time, or null when the clock ran out.
   final int? seconds;
-  final int hints;
   final int? points;
 
   /// The big line: "Solved in 01:42".
   String get timeLine => seconds == null ? 'Solved!' : 'Solved in ${clock(seconds!)}';
 
-  /// The line under it: "2 hints · +120 points".
-  String get detailLine => [
-    hints == 0 ? 'No hints' : (hints == 1 ? '1 hint' : '$hints hints'),
-    if (points != null && points! > 0) '+$points points',
-  ].join(' · ');
+  /// The line under it: "+120 points", or nothing.
+  String get detailLine => points != null && points! > 0 ? '+$points points' : '';
 }
 
 /// Whether there is a win to share: this run just solved, not given up, or
@@ -95,7 +90,6 @@ Future<void> shareWin(BuildContext context, GameController game) async {
       seed: puzzle.id.codeUnits.fold(0, (sum, c) => sum * 31 + c & 0x7fffffff),
       heading: '${puzzle.slotKind.label} · ${dayLabel(puzzle.publishDate)}',
       seconds: seconds,
-      hints: past?.hintsUsed ?? game.hintsUsed,
       // A replay or an earlier solve shows no points: they were not won now.
       points: past == null ? game.score?.totalPoints : null,
     );

@@ -104,8 +104,6 @@ class ProfileScreen extends StatelessWidget {
                             '—',
                         icon: Icons.emoji_events_outlined,
                       ),
-                      const SizedBox(width: 10),
-                      StatTile(label: 'Hints used', value: '${stats.hintsUsed}', icon: Icons.lightbulb_outline_rounded),
                     ],
                   ),
                 ],

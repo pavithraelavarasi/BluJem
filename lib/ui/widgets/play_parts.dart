@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/dates.dart';
 import '../../core/slots.dart';
-import '../../game/board.dart';
 import '../../game/game_controller.dart';
 import '../../models/puzzle.dart';
 import '../../models/records.dart';
@@ -340,7 +339,7 @@ class HowToPlay extends StatelessWidget {
           '${Theme.of(context).platform == TargetPlatform.macOS ? 'On a keyboard, type letters and press Backspace to undo.' : 'Shake the phone to mix the unsolved letters again.'}',
       'The circled letters drop into the answer row at the bottom.',
       'Swipe to the cartoon, read the riddle, and arrange the circled letters into the answer.',
-      'Stuck? A hint fills in a word, but costs points. The faster you finish, the more you score.',
+      'The faster you finish, the more you score.',
     ];
     return Column(
       children: [
@@ -458,101 +457,7 @@ class _Rule extends StatelessWidget {
   }
 }
 
-/// The hints so far for one row, the next on request, and the answer for a
-/// player who would rather see it. Follows the run as hints arrive.
-Future<void> showHintSheet(BuildContext context, GameController game, int rowId) {
-  if (game.hintsFor(rowId).shown == 0) game.requestHint(rowId);
-  return showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    builder: (context) => ListenableBuilder(
-      listenable: game,
-      builder: (context, _) {
-        final p = context.palette;
-        final row = game.board.row(rowId);
-        final h = game.hintsFor(rowId);
-        final title = rowId == finalRowId
-            ? 'Final answer'
-            : 'Word ${game.board.words.indexWhere((w) => w.id == rowId) + 1}';
-        if (row == null || row.solved) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) Navigator.of(context).maybePop();
-          });
-        }
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.lightbulb_rounded, color: p.accent),
-                    const SizedBox(width: 8),
-                    Text('Hint · $title', style: Theme.of(context).textTheme.titleLarge),
-                    const Spacer(),
-                    Text('${h.shown}/3', style: TextStyle(color: p.inkFaint)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                for (var i = 0; i < h.texts.length; i++)
-                  if (h.texts[i].isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: p.sunken, borderRadius: BorderRadius.circular(14)),
-                        child: Text('${i + 1}. ${h.texts[i]}', style: const TextStyle(fontSize: 16, height: 1.4)),
-                      ),
-                    ),
-                if (h.loading)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-                        const SizedBox(width: 10),
-                        Text('Thinking of a hint…', style: TextStyle(color: p.inkSoft)),
-                      ],
-                    ),
-                  ),
-                if (h.source == HintSource.offline && !h.loading)
-                  Text('Offline hint, from the dictionary.', style: TextStyle(color: p.inkFaint, fontSize: 12)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: h.allShown
-                          ? FilledButton(
-                              style: FilledButton.styleFrom(backgroundColor: p.warning),
-                              onPressed: () {
-                                game.revealRow(rowId);
-                                Navigator.pop(context);
-                              },
-                              child: const Text('Show answer'),
-                            )
-                          : FilledButton(
-                              onPressed: h.loading ? null : () => game.requestHint(rowId),
-                              child: const Text('Another hint'),
-                            ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    ),
-  );
-}
-
-/// The finish: the answer, why it is funny, time, hints and points.
+/// The finish: the answer, why it is funny, time and points.
 Future<void> showCompletionSheet(
   BuildContext context,
   GameController game, {
@@ -637,7 +542,6 @@ class _CompletionBody extends StatelessWidget {
             Row(
               children: [
                 _Stat(label: 'Time', value: game.timedOut ? 'N/A' : clock(game.elapsedAtCompletion ?? 0)),
-                _Stat(label: 'Hints', value: '${game.hintsUsed}'),
                 _Stat(label: 'Points', value: score != null ? '+${score.totalPoints}' : (game.scoring ? '…' : '–')),
               ],
             ),

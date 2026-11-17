@@ -16,7 +16,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('the card says the time big, then hints and points', () {
-    WinCard card({int? seconds, int hints = 0, int? points}) => WinCard(
+    WinCard card({int? seconds, int? points}) => WinCard(
       logo: _none,
       sheet: _none,
       cartoon: const BoxRect(0, 0, 1, 1),
@@ -24,14 +24,12 @@ void main() {
       title: "Today's BluJem",
       heading: 'Morning',
       seconds: seconds,
-      hints: hints,
       points: points,
     );
     expect(card(seconds: 102).timeLine, 'Solved in 01:42');
     expect(card().timeLine, 'Solved!');
-    expect(card(hints: 2, points: 120).detailLine, '2 hints · +120 points');
-    expect(card(hints: 1).detailLine, '1 hint');
-    expect(card(points: 0).detailLine, 'No hints');
+    expect(card(points: 120).detailLine, '+120 points');
+    expect(card(points: 0).detailLine, '');
   });
 
   test('the QR code and the shared message point at the download page', () {
@@ -52,7 +50,6 @@ void main() {
         heading: 'Morning · Mon, Nov 9',
         seed: 7,
         seconds: 102,
-        hints: 2,
         points: 120,
       );
       final png = await renderWinCard(card);

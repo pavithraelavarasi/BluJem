@@ -62,7 +62,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
     game.onHintUnavailable = () {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Hints need a connection to BluJem. Try again in a moment.')));
+          .showSnackBar(const SnackBar(content: Text('This needs a connection to BluJem. Try again in a moment.')));
     };
     game.addListener(_onGame);
     _congratulated = game.completed;
@@ -816,12 +816,6 @@ class _ActionBar extends StatelessWidget {
             label: 'Reset',
             onPressed: t == null ? null : () => game.resetRow(t),
           ),
-          _GameButton(
-            icon: Icons.lightbulb_rounded,
-            label: 'Hint',
-            accent: true,
-            onPressed: t == null ? null : () => showHintSheet(context, game, t),
-          ),
         ],
       ),
     );
@@ -830,11 +824,10 @@ class _ActionBar extends StatelessWidget {
 
 /// A chunky rounded key with its label underneath, that sinks when pressed.
 class _GameButton extends StatefulWidget {
-  const _GameButton({required this.icon, required this.label, required this.onPressed, this.accent = false});
+  const _GameButton({required this.icon, required this.label, required this.onPressed});
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
-  final bool accent;
 
   @override
   State<_GameButton> createState() => _GameButtonState();
@@ -847,8 +840,8 @@ class _GameButtonState extends State<_GameButton> {
   Widget build(BuildContext context) {
     final p = context.palette;
     final on = widget.onPressed != null;
-    final face = widget.accent ? p.accent : p.card;
-    final edge = widget.accent ? Color.lerp(p.accent, p.ink, 0.35)! : p.rule;
+    final face = p.card;
+    final edge = p.rule;
     final ink = on ? p.ink : p.inkFaint;
     return Semantics(
       button: true,
@@ -870,7 +863,7 @@ class _GameButtonState extends State<_GameButton> {
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 80),
-                width: widget.accent ? 76 : 60,
+                width: 60,
                 height: 46,
                 margin: EdgeInsets.only(top: _down ? 3 : 0, bottom: _down ? 0 : 3),
                 decoration: BoxDecoration(
