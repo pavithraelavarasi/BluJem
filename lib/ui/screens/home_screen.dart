@@ -240,7 +240,7 @@ class _SlotTile extends StatelessWidget {
     final done = ready != null && solved(ready);
     final (subtitle, icon) = ready != null
         ? (
-            done ? 'Solved' : '${slot.words} words · ready to play',
+            done ? 'Solved' : 'Ready to play',
             done ? Icons.verified_rounded : Icons.play_arrow_rounded,
           )
         : locked

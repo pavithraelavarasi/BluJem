@@ -150,7 +150,6 @@ class StartCard extends StatelessWidget {
     final p = context.palette;
     final t = Theme.of(context).textTheme;
     final puzzle = game.puzzle;
-    final minutes = puzzle.timeLimitSeconds ~/ 60;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -168,9 +167,8 @@ class StartCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   fromDay == null
-                      ? "You get $minutes minutes for today's ${puzzle.difficulty.toLowerCase()} puzzle. "
-                            'The clock starts when you tap below.'
-                      : 'You get $minutes minutes for the puzzle from $fromDay. The clock starts when you tap below.',
+                      ? 'The clock starts when you tap below.'
+                      : 'This puzzle is from $fromDay. The clock starts when you tap below.',
                   style: TextStyle(color: p.inkSoft, height: 1.4),
                 ),
                 if (pointsOn) ...[
@@ -212,8 +210,8 @@ String teaserLine(Puzzle puzzle) => switch (puzzle.slotKind) {
 };
 
 /// The start screen's picture: artwork for the puzzle's slot — a sunrise,
-/// an afternoon sun, a night sky, Sunday's big day — with BLUJEM in tipped
-/// tiles. Nothing of the puzzle itself, so no one sees the cartoon or its
+/// an afternoon sun, a night sky, Sunday's big day — and the slot's name.
+/// Nothing of the puzzle itself, so no one sees the cartoon or its
 /// riddle before the clock starts.
 class StartArt extends StatelessWidget {
   const StartArt({super.key, required this.puzzle});
@@ -244,45 +242,15 @@ class StartArt extends StatelessWidget {
                 alignment: Alignment(x * 2 - 1, y * 2 - 1),
                 child: Icon(Icons.star_rounded, size: 12, color: Colors.white.withValues(alpha: 0.7)),
               ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (final (i, c) in 'BLUJEM'.split('').indexed)
-                    Transform.rotate(
-                      angle: (i.isEven ? -1 : 1) * 0.09,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8C547),
-                          borderRadius: BorderRadius.circular(9),
-                          boxShadow: const [BoxShadow(color: Color(0xFFB8952A), offset: Offset(0, 3))],
-                        ),
-                        child: Text(
-                          c,
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF1C1B19)),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
                 label,
-                style: TextStyle(color: ink, fontWeight: FontWeight.w800, letterSpacing: 2.5, fontSize: 14),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: ink, fontWeight: FontWeight.w800, letterSpacing: 3, fontSize: 24),
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${puzzle.words.length} words · 1 cartoon riddle',
-                style: TextStyle(color: ink.withValues(alpha: 0.8), fontSize: 13),
-              ),
-            ],
+            ),
           ),
         ],
       ),
