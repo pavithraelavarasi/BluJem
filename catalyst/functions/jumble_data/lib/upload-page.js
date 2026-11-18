@@ -48,7 +48,7 @@ function uploadPage() {
 <body>
 <main>
 	<h1>BluJem upload</h1>
-	<p class="lead">Upload a puzzle for any date. Monday to Saturday has three: morning (9:00 AM), afternoon (3:00 PM) and night (9:00 PM). The morning puzzle and Sunday&#39;s Mega Jumble (6 words) open the moment you publish them, but not before 9:00 AM (Sunday 6:00 AM). The afternoon and night puzzles open at their time. Players get a notification when each opens. India time.</p>
+	<p class="lead">Upload a puzzle for any date. Monday to Saturday has three: morning (9:00 AM), afternoon (3:00 PM) and night (9:00 PM). The morning puzzle and Sunday&#39;s Mega BluJem (6 words) open the moment you publish them, but not before 9:00 AM (Sunday 6:00 AM). The afternoon and night puzzles open at their time. Players get a notification when each opens. India time.</p>
 
 	<section id="signin">
 		<h2>Sign in</h2>
@@ -125,7 +125,7 @@ function uploadPage() {
 	const isSunday = (iso) => new Date(iso + 'T00:00:00Z').getUTCDay() === 0;
 	function fillSlots() {
 		const iso = $('date').value;
-		const options = !iso ? [] : isSunday(iso) ? [['sunday', 'Sunday Mega Jumble · opens when published · 6 words']] : [['morning', 'Morning · 9:00 AM, or when published if later · 4 words'], ['evening', 'Afternoon · 3:00 PM · 4 words'], ['night', 'Night · 9:00 PM · 4 words']];
+		const options = !iso ? [] : isSunday(iso) ? [['sunday', 'Sunday Mega BluJem · opens when published · 6 words']] : [['morning', 'Morning · 9:00 AM, or when published if later · 4 words'], ['evening', 'Afternoon · 3:00 PM · 4 words'], ['night', 'Night · 9:00 PM · 4 words']];
 		const keep = $('slot').value;
 		$('slot').innerHTML = options.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('');
 		if (options.some(([v]) => v === keep)) $('slot').value = keep;
