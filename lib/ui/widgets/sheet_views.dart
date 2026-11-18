@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -69,10 +70,49 @@ class _CropPainter extends CustomPainter {
   bool shouldRepaint(_CropPainter old) => old.image != image || old.region != region;
 }
 
+/// Mystery tiles: the cartoon sits under a grid of gold BluJem tiles, a few
+/// open. The tiles open in an order fixed per puzzle, so the same corners
+/// show on the Start screen and stay open as more flip during play.
+class MysteryTiles {
+  static const columns = 3;
+  static const rows = 4;
+  static const count = columns * rows;
+
+  /// Open on the Start screen, before any word is solved.
+  static const atStart = 3;
+
+  /// Tiles open with [solved] of [total] words done; all of them once every
+  /// word is in.
+  static int openFor(int solved, int total) =>
+      total == 0 ? count : atStart + ((count - atStart) * solved / total).floor();
+
+  /// Which tile opens first, second, and so on, for [puzzle]. The first
+  /// [atStart] come from the middle rows: speech bubbles sit at the top and
+  /// any caption at the bottom, and either could give the pun away.
+  static List<int> order(Puzzle puzzle) {
+    final seed = puzzle.id.codeUnits.fold<int>(17, (h, c) => (h * 31 + c) & 0x7fffffff);
+    final random = Random(seed);
+    bool middle(int i) => i >= columns && i < count - columns;
+    final inside = [
+      for (var i = 0; i < count; i++)
+        if (middle(i)) i,
+    ]..shuffle(random);
+    final first = inside.take(atStart).toList();
+    final rest = [
+      for (var i = 0; i < count; i++)
+        if (!first.contains(i)) i,
+    ]..shuffle(random);
+    return [...first, ...rest];
+  }
+}
+
 /// The cartoon, as large as fits; a tap opens it full screen to zoom.
+/// With [open] set, only that many mystery tiles show it; null shows it all.
 class CartoonView extends StatelessWidget {
-  const CartoonView({super.key, required this.puzzle});
+  const CartoonView({super.key, required this.puzzle, this.open, this.zoomable = true});
   final Puzzle puzzle;
+  final int? open;
+  final bool zoomable;
 
   @override
   Widget build(BuildContext context) {
@@ -88,27 +128,108 @@ class CartoonView extends StatelessWidget {
                 : const CircularProgressIndicator(strokeWidth: 2.5),
           );
         }
-        return Center(
-          child: Semantics(
-            button: true,
-            label: 'Cartoon. Tap to open full screen',
-            child: GestureDetector(
-              onTap: () => showZoomable(context, SheetCrop(image: sheet.image, region: sheet.cartoon)),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: p.rule),
-                  color: Colors.white,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: SheetCrop(image: sheet.image, region: sheet.cartoon),
+        final open = this.open;
+        Widget art = SheetCrop(image: sheet.image, region: sheet.cartoon);
+        if (open != null && open < MysteryTiles.count) {
+          art = Stack(
+            children: [
+              art,
+              Positioned.fill(
+                child: _TileCover(order: MysteryTiles.order(puzzle), open: open),
               ),
-            ),
+            ],
+          );
+        }
+        final framed = Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: p.rule),
+            color: Colors.white,
           ),
+          clipBehavior: Clip.antiAlias,
+          child: art,
+        );
+        return Center(
+          child: !zoomable
+              ? framed
+              : Semantics(
+                  button: true,
+                  label: 'Cartoon. Tap to open full screen',
+                  child: GestureDetector(onTap: () => showZoomable(context, art), child: framed),
+                ),
         );
       },
     );
   }
+}
+
+/// The gold tiles over the cartoon; each opens with a flip when [open] passes it.
+class _TileCover extends StatelessWidget {
+  const _TileCover({required this.order, required this.open});
+  final List<int> order;
+  final int open;
+
+  @override
+  Widget build(BuildContext context) {
+    final opened = order.take(open).toSet();
+    return Column(
+      children: [
+        for (var r = 0; r < MysteryTiles.rows; r++)
+          Expanded(
+            child: Row(
+              children: [
+                for (var c = 0; c < MysteryTiles.columns; c++)
+                  Expanded(
+                    child: _MysteryTile(
+                      index: r * MysteryTiles.columns + c,
+                      open: opened.contains(r * MysteryTiles.columns + c),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _MysteryTile extends StatelessWidget {
+  const _MysteryTile({required this.index, required this.open});
+  final int index;
+  final bool open;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(end: open ? 0 : 1),
+    duration: const Duration(milliseconds: 450),
+    curve: Curves.easeInOut,
+    builder: (context, shown, _) {
+      if (shown <= 0.01) return const SizedBox.expand();
+      // Turns edge-on as it opens, like a card flipping away.
+      return Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()..scaleByDouble(1, shown, 1, 1),
+        child: Container(
+          margin: const EdgeInsets.all(1.5),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8C547),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFB8952A), width: 1.5),
+          ),
+          child: FittedBox(
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Text(
+                'BLUJEM'[index % 6],
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF6B4E0E)),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// [child] full screen with pinch-to-zoom; a tap or the close button goes back.

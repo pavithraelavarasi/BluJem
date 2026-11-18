@@ -368,10 +368,17 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                   children: [
                     _wordsPage(context, active),
                     // The cartoon gets the whole page down to the answer row,
-                    // as large as it fits without cropping.
+                    // as large as it fits without cropping. Its mystery tiles
+                    // flip open as words are solved; all are gone once every
+                    // word is in.
                     Padding(
                       padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-                      child: CartoonView(puzzle: puzzle),
+                      child: CartoonView(
+                        puzzle: puzzle,
+                        open: board.allWordsSolved || board.finalRow.solved
+                            ? null
+                            : MysteryTiles.openFor(board.solvedCount, board.words.length),
+                      ),
                     ),
                   ],
                 ),

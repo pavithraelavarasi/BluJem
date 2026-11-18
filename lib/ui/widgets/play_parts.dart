@@ -11,6 +11,7 @@ import '../../models/records.dart';
 import '../share_card.dart';
 import '../theme.dart';
 import 'share_win_button.dart';
+import 'sheet_views.dart';
 import 'tile_row.dart';
 
 /// The countdown, or "Time's up" with a way to start over.
@@ -209,48 +210,39 @@ String teaserLine(Puzzle puzzle) => switch (puzzle.slotKind) {
   Slot.sunday => 'Sunday’s Mega BluJem: six words and a bigger riddle. Can you crack it?',
 };
 
-/// The start screen's picture: artwork for the puzzle's slot — a sunrise,
-/// an afternoon sun, a night sky, Sunday's big day — and the slot's name.
-/// Nothing of the puzzle itself, so no one sees the cartoon or its
-/// riddle before the clock starts.
+/// The start screen's picture: the puzzle's own cartoon under gold mystery
+/// tiles, a few open, on its slot's colours. Enough to wonder about, never
+/// enough to read the pun; the riddle waits until the clock starts.
 class StartArt extends StatelessWidget {
   const StartArt({super.key, required this.puzzle});
   final Puzzle puzzle;
 
   @override
   Widget build(BuildContext context) {
-    final (colors, icon, label) = switch (puzzle.slotKind) {
-      Slot.morning => (const [Color(0xFFFFD39B), Color(0xFFFF9E7A)], Icons.wb_sunny_rounded, 'MORNING BLUJEM'),
-      Slot.evening => (const [Color(0xFF9FD8FF), Color(0xFFFFC56E)], Icons.wb_twilight_rounded, 'AFTERNOON BLUJEM'),
-      Slot.night => (const [Color(0xFF1B2A5C), Color(0xFF5B3D8F)], Icons.nights_stay_rounded, 'NIGHT BLUJEM'),
-      Slot.sunday => (const [Color(0xFF1E6FE0), Color(0xFF7A4CE0)], Icons.auto_awesome_rounded, 'SUNDAY MEGA BLUJEM'),
+    final (colors, label) = switch (puzzle.slotKind) {
+      Slot.morning => (const [Color(0xFFFFD39B), Color(0xFFFF9E7A)], 'MORNING BLUJEM'),
+      Slot.evening => (const [Color(0xFF9FD8FF), Color(0xFFFFC56E)], 'AFTERNOON BLUJEM'),
+      Slot.night => (const [Color(0xFF1B2A5C), Color(0xFF5B3D8F)], 'NIGHT BLUJEM'),
+      Slot.sunday => (const [Color(0xFF1E6FE0), Color(0xFF7A4CE0)], 'SUNDAY MEGA BLUJEM'),
     };
     final dark = puzzle.slotKind == Slot.night || puzzle.slotKind == Slot.sunday;
     final ink = dark ? Colors.white : const Color(0xFF1C1B19);
     return Container(
-      height: 190,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
       ),
-      child: Stack(
+      child: Column(
         children: [
-          // The slot's sky: a sun or moon, and stars at night.
-          Positioned(right: 12, top: 8, child: Icon(icon, size: 46, color: ink.withValues(alpha: 0.85))),
-          if (dark)
-            for (final (x, y) in const [(0.08, 0.15), (0.22, 0.32), (0.4, 0.12), (0.58, 0.28), (0.12, 0.6)])
-              Align(
-                alignment: Alignment(x * 2 - 1, y * 2 - 1),
-                child: Icon(Icons.star_rounded, size: 12, color: Colors.white.withValues(alpha: 0.7)),
-              ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: ink, fontWeight: FontWeight.w800, letterSpacing: 3, fontSize: 24),
-              ),
-            ),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: ink, fontWeight: FontWeight.w800, letterSpacing: 2.5, fontSize: 15),
+          ),
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 340),
+            child: CartoonView(puzzle: puzzle, open: MysteryTiles.atStart, zoomable: false),
           ),
         ],
       ),
