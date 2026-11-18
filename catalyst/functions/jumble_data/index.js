@@ -8,6 +8,7 @@ const { asBool, puzzleFromRow, playerView, answersOf, isComplete } = require('./
 const { patternOf } = require('./lib/puzzle-text');
 const { prepareUpload, cartoonKey, imageType } = require('./lib/upload');
 const { uploadPage } = require('./lib/upload-page');
+const { keyMatches, cartoonSource, prepareDraft, draftPlace } = require('./lib/gpt-upload');
 const { announceOnPublish, dueAtTimer, announce } = require('./lib/notify');
 const { cleanAbout, aboutProblem, aboutKey } = require('./lib/profile');
 
@@ -212,6 +213,86 @@ async function uploadPuzzle(app, caller, body, res) {
 		notified,
 		puzzle: puzzleFromRow(puzzle)
 	});
+}
+
+/**
+ * A puzzle from the BluJem Custom GPT: checked like the admin's upload and
+ * stored as a draft (unpublished, not announced). It carries GPT_UPLOAD_KEY
+ * (header x-blujem-key) instead of a sign-in; unset, nothing is accepted.
+ */
+async function gptUpload(req, res) {
+	if (!keyMatches(req.headers['x-blujem-key'], process.env.GPT_UPLOAD_KEY)) {
+		return sendJson(res, 401, { error: 'Not allowed.' });
+	}
+	const body = await readBody(req);
+	const prepared = prepareDraft(body);
+	if (prepared.problems.length) return sendJson(res, 400, { problems: prepared.problems });
+	const source = cartoonSource(body);
+	if (source.problem) return sendJson(res, 400, { problems: [source.problem] });
+
+	const app = catalyst.initialize(req, { scope: 'admin' });
+	const { values } = prepared;
+	const rows = (await zcql(app, `SELECT * FROM ${PUZZLES} WHERE PublishDate = '${quote(values.PublishDate)}'`))
+		.map((r) => r[PUZZLES]).filter(Boolean);
+	const place = draftPlace(rows, values.PublishDate, values.Slot);
+	if (place.conflict) return sendJson(res, 409, { problems: [place.conflict] });
+
+	let bytes;
+	if (source.url) {
+		const download = await fetch(source.url);
+		if (!download.ok) return sendJson(res, 400, { problems: ['The cartoon could not be downloaded from ChatGPT.'] });
+		bytes = Buffer.from(await download.arrayBuffer());
+	} else {
+		bytes = Buffer.from(source.base64, 'base64');
+	}
+	const type = imageType(bytes);
+	if (!type) return sendJson(res, 400, { problems: ['The cartoon must be a PNG or JPEG picture.'] });
+	if (bytes.length > MAX_SHEET_BYTES) return sendJson(res, 413, { problems: ['That cartoon is too large (10 MB at most).'] });
+
+	// Its own key, so a draft never touches the picture of a published puzzle.
+	const sheetKey = `drafts/${values.PublishDate}/${values.Slot}/cartoon.${type === 'image/png' ? 'png' : 'jpg'}`;
+	await app.stratus().bucket(BUCKET).putObject(sheetKey, Readable.from([bytes]), { overwrite: true, contentType: type });
+
+	const row = { ...values, SheetKey: sheetKey };
+	const table = app.datastore().table(PUZZLES);
+	const saved = place.replace
+		? await table.updateRow({ ROWID: place.replace.ROWID, PuzzleId: place.replace.PuzzleId, ...row })
+		: await table.insertRow({ PuzzleId: crypto.randomUUID(), ...row });
+	return sendJson(res, 200, {
+		draft: true,
+		message: `Saved as a draft for ${values.PublishDate} (${SLOTS[values.Slot].label}). An admin checks and publishes it on the upload page.`,
+		puzzleId: saved.PuzzleId || place.replace?.PuzzleId || ''
+	});
+}
+
+/**
+ * The admin publishes a draft as it is. Refused if its slot has a published
+ * puzzle by now; otherwise it opens at its slot's time (or now, if that has
+ * passed) and players are told when it opens.
+ */
+async function publishDraft(app, caller, body, res) {
+	if (caller.role !== 'admin') return sendJson(res, 403, { error: 'Only an admin can publish puzzles.' });
+	const puzzleId = String(body.id || '').trim();
+	const draft = (await zcql(app, `SELECT * FROM ${PUZZLES} WHERE PuzzleId = '${quote(puzzleId)}'`))
+		.map((r) => r[PUZZLES]).filter(Boolean)[0];
+	if (!draft) return sendJson(res, 404, { error: 'That draft is gone.' });
+	if (asBool(draft.Published)) return sendJson(res, 200, { puzzle: puzzleFromRow(draft), notified: { sent: false } });
+	if (!isComplete(draft)) return sendJson(res, 400, { error: 'That draft has no answers yet.' });
+	const date = String(draft.PublishDate);
+	const slot = draft.Slot || defaultSlot(date);
+	const rows = (await zcql(app, `SELECT * FROM ${PUZZLES} WHERE PublishDate = '${quote(date)}'`))
+		.map((r) => r[PUZZLES]).filter(Boolean).filter((r) => r.PuzzleId !== puzzleId);
+	const place = draftPlace(rows, date, slot);
+	if (place.conflict) return sendJson(res, 409, { error: place.conflict });
+
+	const now = Date.now();
+	const values = { Published: 'true', PublishAt: openingTime(date, slot, now, null) };
+	await app.datastore().table(PUZZLES).updateRow({ ROWID: draft.ROWID, ...values });
+	const puzzle = { ...draft, ...values };
+	const notified = announceOnPublish(puzzle, null, now)
+		? await announce(puzzle)
+		: { sent: false, skipped: 'not out yet: announced when it opens' };
+	return sendJson(res, 200, { puzzle: puzzleFromRow(puzzle), goesLive: liveText(values.PublishAt, now), notified });
 }
 
 /** "Sat 7 Nov, 4:00 pm" in India, or "now" when it is already out. */
@@ -916,6 +997,8 @@ module.exports = async (req, res) => {
 		}
 		// The timer may call with GET or POST, whichever the console sends.
 		if (/\/cron\/notify\/?$/.test(path)) return await timerNotify(req, res);
+		// The BluJem Custom GPT: its own key, drafts only.
+		if (req.method === 'POST' && /\/gpt\/puzzle\/?$/.test(path)) return await gptUpload(req, res);
 		if (req.method !== 'POST') {
 			return sendJson(res, 405, { error: 'Use POST.' });
 		}
@@ -933,6 +1016,7 @@ module.exports = async (req, res) => {
 			case 'puzzles/list': return await listPuzzles(app, caller, body, res);
 			case 'puzzles/publish': return await publishPuzzle(app, caller, body, res);
 			case 'puzzles/upload': return await uploadPuzzle(app, caller, body, res);
+			case 'puzzles/publish-draft': return await publishDraft(app, caller, body, res);
 			case 'puzzles/answers': return await puzzleAnswers(app, caller, body, res);
 			case 'puzzles/sheet': return await streamSheet(app, caller, body, res);
 			case 'admin/migrate-slots': return await migrateSlots(app, caller, res);

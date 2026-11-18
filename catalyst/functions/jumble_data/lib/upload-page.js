@@ -86,6 +86,19 @@ function uploadPage() {
 	<section id="upcoming" class="hidden">
 		<h2>Uploaded puzzles</h2>
 		<table><thead><tr><th>Date</th><th>Slot</th><th>Goes live</th><th>Status</th></tr></thead><tbody id="list"></tbody></table>
+		<div class="msg" id="listMsg"></div>
+	</section>
+
+	<section id="draft" class="hidden">
+		<h2 id="draftTitle">Draft</h2>
+		<p class="hint">Sent by the BluJem GPT. Check the cartoon, the letters and the answers before publishing. Players see nothing until you publish.</p>
+		<img id="draftImg" alt="Cartoon" style="max-width:100%;border-radius:10px;border:1px solid var(--line)">
+		<table><thead><tr><th>Scrambled</th><th>Answer</th></tr></thead><tbody id="draftWords"></tbody></table>
+		<p><b>Final answer:</b> <span id="draftFinal"></span></p>
+		<p id="draftClue" class="hint"></p>
+		<button class="primary" id="draftPublish">Publish</button>
+		<button class="plain" id="draftClose">Close</button>
+		<div class="msg" id="draftMsg"></div>
 	</section>
 </main>
 <script>
@@ -110,7 +123,7 @@ function uploadPage() {
 
 	function show(el, text, ok) { el.textContent = text; el.className = 'msg ' + (ok ? 'good' : 'bad'); }
 
-	function signOut() { token = ''; sessionStorage.removeItem('blujemToken'); $('signin').classList.remove('hidden'); $('form').classList.add('hidden'); $('upcoming').classList.add('hidden'); }
+	function signOut() { token = ''; sessionStorage.removeItem('blujemToken'); $('signin').classList.remove('hidden'); $('form').classList.add('hidden'); $('upcoming').classList.add('hidden'); $('draft').classList.add('hidden'); }
 
 	function signedIn() { $('signin').classList.add('hidden'); $('form').classList.remove('hidden'); $('upcoming').classList.remove('hidden'); loadList(); }
 
@@ -179,15 +192,64 @@ function uploadPage() {
 		finally { btn.disabled = false; }
 	};
 
+	const SLOT_NAMES = { morning: 'Morning', evening: 'Afternoon', night: 'Night', sunday: 'Sunday' };
+	const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+	let drafts = {};
+
 	async function loadList() {
 		try {
 			const reply = await call(DATA + 'puzzles/list', { client: 2, all: true });
 			const today = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10);
-			const rows = (reply.puzzles || []).filter((p) => p.publishDate >= today).sort((a, b) => a.publishAt - b.publishAt);
+			const all = reply.puzzles || [];
+			const live = new Set(all.filter((p) => p.published).map((p) => p.publishDate + '/' + p.slot));
+			// A draft from the GPT has its answers; one whose slot is taken is left out.
+			const rows = all.filter((p) => p.publishDate >= today)
+				.filter((p) => p.published || !live.has(p.publishDate + '/' + p.slot))
+				.sort((a, b) => a.publishAt - b.publishAt);
 			const when = (ms) => new Date(ms).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
-			$('list').innerHTML = rows.length ? rows.map((p) => '<tr><td>' + p.publishDate + '</td><td>' + p.slot + '</td><td>' + when(p.publishAt) + '</td><td>' + (p.published ? (p.publishAt <= Date.now() ? 'Live' : 'Scheduled') : 'Needs answers') + '</td></tr>').join('') : '<tr><td colspan="4">Nothing uploaded from today on.</td></tr>';
-		} catch (e) { $('list').innerHTML = '<tr><td colspan="4" class="bad">' + e.message + '</td></tr>'; }
+			drafts = {};
+			$('list').innerHTML = rows.length ? rows.map((p) => {
+				let status = p.published ? (p.publishAt <= Date.now() ? 'Live' : 'Scheduled') : 'Needs answers';
+				if (!p.published && p.finalAnswer) { drafts[p.id] = p; status = '<b>Draft</b> <button class="plain" data-check="' + esc(p.id) + '" style="margin:0;padding:4px 10px">Check</button>'; }
+				return '<tr><td>' + esc(p.publishDate) + '</td><td>' + esc(SLOT_NAMES[p.slot] || p.slot) + '</td><td>' + when(p.publishAt) + '</td><td>' + status + '</td></tr>';
+			}).join('') : '<tr><td colspan="4">Nothing uploaded from today on.</td></tr>';
+			document.querySelectorAll('[data-check]').forEach((b) => { b.onclick = () => openDraft(drafts[b.dataset.check]); });
+		} catch (e) { $('list').innerHTML = '<tr><td colspan="4" class="bad">' + esc(e.message) + '</td></tr>'; }
 	}
+
+	let openId = '';
+	async function openDraft(p) {
+		openId = p.id;
+		$('draft').classList.remove('hidden');
+		$('draftMsg').textContent = '';
+		$('draftTitle').textContent = 'Draft · ' + p.publishDate + ' · ' + (SLOT_NAMES[p.slot] || p.slot);
+		let words = [];
+		try { words = JSON.parse(p.words || '[]'); } catch (e) {}
+		$('draftWords').innerHTML = words.map((w) => {
+			const circled = (w.boxes || []).map((b, i) => (b.c ? i : -1)).filter((i) => i >= 0);
+			const shown = [...String(w.scrambled || '')].map((c, i) => circled.includes(i) ? '<b style="color:var(--accent)">' + esc(c) + '</b>' : esc(c.toLowerCase())).join('');
+			return '<tr><td style="font-family:ui-monospace,Menlo,monospace">' + shown + '</td><td>' + esc(w.answer) + '</td></tr>';
+		}).join('');
+		$('draftFinal').textContent = p.finalAnswer + '  (' + (p.finalPattern || '').replace(/\\n/g, ' ') + ')';
+		$('draftClue').textContent = p.finalClue ? 'Caption: ' + p.finalClue : '';
+		$('draftImg').removeAttribute('src');
+		$('draft').scrollIntoView({ behavior: 'smooth' });
+		try {
+			const res = await fetch(DATA + 'puzzles/sheet', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Jumble-Token': token }, body: JSON.stringify({ key: p.sheetKey }) });
+			if (res.ok) $('draftImg').src = URL.createObjectURL(await res.blob());
+		} catch (e) {}
+	}
+	$('draftClose').onclick = () => { $('draft').classList.add('hidden'); openId = ''; };
+	$('draftPublish').onclick = async () => {
+		const btn = $('draftPublish');
+		btn.disabled = true;
+		try {
+			const reply = await call(DATA + 'puzzles/publish-draft', { id: openId });
+			show($('draftMsg'), 'Published. Goes live ' + reply.goesLive + '.' + (reply.notified && reply.notified.sent ? ' Players have been notified.' : ' Players are notified when it opens.'), true);
+			loadList();
+		} catch (e) { show($('draftMsg'), e.message, false); }
+		finally { btn.disabled = false; }
+	};
 
 	const tomorrow = new Date(Date.now() + 5.5 * 3600e3 + 864e5).toISOString().slice(0, 10);
 	$('date').value = tomorrow;
