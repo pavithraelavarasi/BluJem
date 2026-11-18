@@ -239,10 +239,7 @@ class _SlotTile extends StatelessWidget {
     final ready = puzzle;
     final done = ready != null && solved(ready);
     final (subtitle, icon) = ready != null
-        ? (
-            done ? 'Solved' : 'Ready to play',
-            done ? Icons.verified_rounded : Icons.play_arrow_rounded,
-          )
+        ? (done ? 'Solved' : 'Ready to play', done ? Icons.verified_rounded : Icons.play_arrow_rounded)
         : locked
         ? ('Unlocks at ${slot.time}', Icons.lock_clock_rounded)
         : (
