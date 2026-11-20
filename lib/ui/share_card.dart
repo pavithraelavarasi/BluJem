@@ -17,10 +17,17 @@ import '../models/records.dart';
 import 'theme.dart';
 import 'widgets/sheet_views.dart';
 
-/// Where the QR code and the shared message send friends: a page with the
-/// latest Android download (blujem_daily's site pages), so the link never
-/// goes stale the way a signed APK link does.
-const appDownloadUrl = '$functionsBaseUrl/server/blujem_daily/execute/download';
+/// The page with the latest Android download (blujem_daily's site pages), so
+/// the link never goes stale the way a signed APK link does.
+const appDownloadPage = '$functionsBaseUrl/server/blujem_daily/execute/download';
+
+/// Where the QR code sends friends: a short link to [appDownloadPage]
+/// (TinyURL alias "blujem"; repoint it there if the page ever moves).
+const appDownloadUrl = 'https://tinyurl.com/blujem';
+
+/// The same link as written in a message: chat apps make it tappable
+/// without the https://.
+const appDownloadLink = 'tinyurl.com/blujem';
 
 /// What a "Share your win" card shows.
 class WinCard {
@@ -105,7 +112,7 @@ Future<void> shareWin(BuildContext context, GameController game) async {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: '${winMessage(today: today, seconds: seconds)} $appDownloadUrl',
+        text: '${winMessage(today: today, seconds: seconds)} $appDownloadLink',
         subject: 'I solved BluJem',
         sharePositionOrigin: origin,
       ),
@@ -141,7 +148,7 @@ Future<void> shareApp(BuildContext context, {PlayerStats? stats}) async {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: 'Play BluJem with me — a new BluJem every morning, afternoon and night! $appDownloadUrl',
+        text: 'Play BluJem with me — a new BluJem every morning, afternoon and night! $appDownloadLink',
         subject: 'Play BluJem with me',
         sharePositionOrigin: origin,
       ),

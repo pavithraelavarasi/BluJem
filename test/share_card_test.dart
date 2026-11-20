@@ -40,8 +40,9 @@ void main() {
   });
 
   test('the QR code and the shared message point at the download page', () {
-    expect(appDownloadUrl, endsWith('/server/blujem_daily/execute/download'));
-    expect(Uri.parse(appDownloadUrl).isScheme('https'), isTrue);
+    expect(appDownloadPage, endsWith('/server/blujem_daily/execute/download'));
+    expect(appDownloadUrl, 'https://tinyurl.com/blujem');
+    expect(appDownloadUrl, endsWith(appDownloadLink));
   });
 
   testWidgets('the card draws to a PNG 1080 wide', (tester) async {
