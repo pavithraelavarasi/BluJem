@@ -25,7 +25,12 @@ for dir in "${FOLDERS[@]}"; do
     pictures+=("$f")
   done
 done
-[ ${#pictures[@]} -eq 0 ] && exit 0
+if [ ${#pictures[@]} -eq 0 ]; then
+  # Seen when macOS keeps this background job out of the folders (Privacy &
+  # Security), which looks the same as an empty folder from in here.
+  echo "$(date '+%F %T') no pictures readable in ${FOLDERS[*]}"
+  exit 0
+fi
 
 # A picture's identity: its name and when it was last changed, so a replaced
 # file is copied again.
