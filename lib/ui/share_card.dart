@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../core/dates.dart';
 import '../data/api_client.dart';
+import '../game/caption.dart';
 import '../game/game_controller.dart';
 import '../models/box_rect.dart';
 import '../models/records.dart';
@@ -30,7 +31,7 @@ class WinCard {
     required this.answer,
     required this.title,
     required this.heading,
-    this.seed = 0,
+    this.captionTop,
     this.seconds,
     this.points,
   });
@@ -49,15 +50,16 @@ class WinCard {
   /// "Morning · Mon, Nov 9".
   final String heading;
 
-  /// Picks which parts of the cartoon are covered, the same ones each time.
-  final int seed;
+  /// Where the cartoon's caption begins, as a fraction of its height: the
+  /// card shows the picture above it, since the caption gives the riddle away.
+  final double? captionTop;
 
   /// The solve time, or null when the clock ran out.
   final int? seconds;
   final int? points;
 
-  /// The big line: "Solved in 01:42".
-  String get timeLine => seconds == null ? 'Solved!' : 'Solved in ${clock(seconds!)}';
+  /// The big line: "Solved in 1:42".
+  String get timeLine => seconds == null ? 'Solved!' : 'Solved in ${shortClock(seconds!)}';
 
   /// The line under it: "+120 points", or nothing.
   String get detailLine => points != null && points! > 0 ? '+$points points' : '';
@@ -81,13 +83,16 @@ Future<void> shareWin(BuildContext context, GameController game) async {
     final sheet = await loadSheet(puzzle);
     final logo = await _asset('assets/images/blujem_logo.png');
     final today = puzzle.publishDate == isoDate(DateTime.now());
+    final pixels = await sheet.image.toByteData(format: ui.ImageByteFormat.rawRgba);
     final card = WinCard(
       logo: logo,
       sheet: sheet.image,
       cartoon: sheet.cartoon,
       answer: answer,
       title: today ? "Today's BluJem" : 'BluJem',
-      seed: puzzle.id.codeUnits.fold(0, (sum, c) => sum * 31 + c & 0x7fffffff),
+      captionTop: pixels == null
+          ? null
+          : captionTop(pixels.buffer.asUint8List(), sheet.image.width, sheet.image.height, sheet.cartoon),
       heading: '${puzzle.slotKind.label} · ${dayLabel(puzzle.publishDate)}',
       seconds: seconds,
       // A replay or an earlier solve shows no points: they were not won now.
@@ -97,11 +102,10 @@ Future<void> shareWin(BuildContext context, GameController game) async {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/blujem-win-${puzzle.id}.png');
     await file.writeAsBytes(png, flush: true);
-    final time = seconds == null ? '' : ' in ${clock(seconds)}';
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: 'I solved ${today ? "today's" : 'a'} BluJem puzzle$time! Can you beat my time? $appDownloadUrl',
+        text: '${winMessage(today: today, seconds: seconds)} $appDownloadUrl',
         subject: 'I solved BluJem',
         sharePositionOrigin: origin,
       ),
@@ -110,6 +114,15 @@ Future<void> shareWin(BuildContext context, GameController game) async {
     debugPrint('Share failed: $e');
     messenger?.showSnackBar(const SnackBar(content: Text('Could not make the picture to share. Try again.')));
   }
+}
+
+/// The message sent with the card: "I solved today's BluJem in 1:24. Can you
+/// match my time?!" — an invitation, not a dare.
+String winMessage({required bool today, int? seconds}) {
+  final which = today ? "today's" : 'a';
+  return seconds == null
+      ? 'I solved $which BluJem. Can you solve it too?!'
+      : 'I solved $which BluJem in ${shortClock(seconds)}. Can you match my time?!';
 }
 
 /// Draws the card that invites friends to BluJem itself — no puzzle on it —
@@ -128,7 +141,7 @@ Future<void> shareApp(BuildContext context, {PlayerStats? stats}) async {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: 'Play BluJem with me — a new puzzle every morning, afternoon and night! $appDownloadUrl',
+        text: 'Play BluJem with me — a new BluJem every morning, afternoon and night! $appDownloadUrl',
         subject: 'Play BluJem with me',
         sharePositionOrigin: origin,
       ),
@@ -172,9 +185,10 @@ const _rule = Color(0xFFD9D2C3);
 const _tile = Color(0xFFE8C547);
 const _blue = Color(0xFF1E6FE0);
 
-/// [card] as a PNG, 1080 pixels wide: BluJem at the top, the cartoon in the
-/// middle with a few parts covered, the answer's blank squares and the solve
-/// time at the bottom, and a QR code to get the app.
+/// [card] as a PNG, 1080 pixels wide and at most 1440 tall (3:4), so a chat
+/// shows it whole instead of cropping the top and bottom: BluJem at the top,
+/// the cartoon without its caption in the middle, the solve time, the
+/// answer's blank squares, and a QR code to get the app.
 Future<Uint8List> renderWinCard(WinCard card) async {
   final recorder = ui.PictureRecorder();
   final height = paintWinCard(Canvas(recorder), card);
@@ -183,55 +197,66 @@ Future<Uint8List> renderWinCard(WinCard card) async {
   return bytes!.buffer.asUint8List();
 }
 
+/// The tallest a win card gets: 3:4, a shape chats show uncropped.
+const winCardMaxHeight = 1440.0;
+
 /// Paints [card] from the top of [canvas]; returns the height used.
 double paintWinCard(Canvas canvas, WinCard card) {
   // Everything is laid out first, so the background can be drawn to fit.
-  const logoHeight = 130.0;
+  const logoHeight = 110.0;
   final logoWidth = card.logo.width * logoHeight / card.logo.height;
 
+  final lines = _answerLines(card.answer);
+  final tile = min(_tileSize(lines), 84.0);
+  final answerHeight = lines.length * tile + (lines.length - 1) * 12;
+  final hasDetail = card.detailLine.isNotEmpty;
+  const footerHeight = 230.0;
+
+  var y = 64.0;
+  final logoTop = y;
+  y += logoHeight + 10;
+  final titleTop = y;
+  y += 64;
+  final headingTop = y;
+  y += 40 + 22;
+  final cartoonTop = y;
+  // What comes under the cartoon, so the cartoon takes the rest of the room.
+  final below = 40 + 30 + 76 + (hasDetail ? 42 : 0) + 22 + 34 + 14 + answerHeight + 36 + footerHeight + 48;
+
+  // The picture above the caption, scaled to fit.
   final crop = card.cartoon;
+  final keep = (card.captionTop ?? 1.0).clamp(0.5, 1.0);
   final cropW = crop.w * card.sheet.width;
-  final cropH = crop.h * card.sheet.height;
+  final cropH = crop.h * keep * card.sheet.height;
   const inner = _width - 2 * _margin - 40;
+  final maxH = max(360.0, winCardMaxHeight - cartoonTop - below);
   var cartoonW = inner;
   var cartoonH = cropH / max(cropW, 1) * cartoonW;
-  if (cartoonH > 620) {
-    cartoonH = 620;
+  if (cartoonH > maxH) {
+    cartoonH = maxH;
     cartoonW = cropW / max(cropH, 1) * cartoonH;
   }
 
-  final lines = _answerLines(card.answer);
-  final tile = _tileSize(lines);
-  final answerHeight = lines.length * tile + (lines.length - 1) * 14;
-
-  var y = 56.0;
-  final logoTop = y;
-  y += logoHeight + 14;
-  final titleTop = y;
-  y += 70;
-  final headingTop = y;
-  y += 46 + 26;
-  final cartoonTop = y;
-  y += cartoonH + 40 + 40;
+  y += cartoonH + 40 + 30;
   final timeTop = y;
-  y += 80 + 4;
+  y += 76;
   final detailTop = y;
-  y += 40 + 40;
+  if (hasDetail) y += 42;
+  y += 22;
   final labelTop = y;
-  y += 34 + 18;
+  y += 34 + 14;
   final answerTop = y;
-  y += answerHeight + 48;
+  y += answerHeight + 36;
   final footerTop = y;
-  const footerHeight = 280.0;
-  y += footerHeight + _margin;
+  y += footerHeight + 48;
   final height = y;
 
   canvas.drawRect(Rect.fromLTWH(0, 0, _width, height), Paint()..color = _paper);
 
   // BluJem on top.
   _image(canvas, card.logo, Rect.fromLTWH((_width - logoWidth) / 2, logoTop, logoWidth, logoHeight));
-  _text(canvas, card.title, titleTop, size: 56, weight: FontWeight.w700, color: _blue);
-  _text(canvas, card.heading, headingTop, size: 34, weight: FontWeight.w600, color: _inkSoft);
+  _text(canvas, card.title, titleTop, size: 52, weight: FontWeight.w700, color: _blue);
+  _text(canvas, card.heading, headingTop, size: 32, weight: FontWeight.w600, color: _inkSoft);
 
   // The cartoon, in a card.
   final frame = Rect.fromLTWH((_width - cartoonW) / 2 - 20, cartoonTop, cartoonW + 40, cartoonH + 40);
@@ -252,17 +277,16 @@ double paintWinCard(Canvas canvas, WinCard card) {
   final picture = Rect.fromLTWH(frame.left + 20, frame.top + 20, cartoonW, cartoonH);
   canvas.clipRRect(RRect.fromRectAndRadius(picture, const Radius.circular(14)));
   canvas.drawImageRect(card.sheet, src, picture, Paint()..filterQuality = FilterQuality.high);
-  _coverParts(canvas, card, src, picture);
   canvas.restore();
 
-  // The solve time, big, for friends to beat.
-  _text(canvas, card.timeLine, timeTop, size: 66, weight: FontWeight.w700, color: _ink);
-  _text(canvas, card.detailLine, detailTop, size: 34, weight: FontWeight.w600, color: _inkSoft);
+  // The solve time, big, for friends to match.
+  _text(canvas, card.timeLine, timeTop, size: 62, weight: FontWeight.w700, color: _ink);
+  if (hasDetail) _text(canvas, card.detailLine, detailTop, size: 32, weight: FontWeight.w600, color: _inkSoft);
 
   // The answer stays hidden: only its blank squares, in the game's yellow.
-  _text(canvas, 'CAN YOU GET THE ANSWER?', labelTop, size: 28, weight: FontWeight.w700, color: _inkSoft, spacing: 3);
+  _text(canvas, 'CAN YOU GET THE ANSWER?', labelTop, size: 26, weight: FontWeight.w700, color: _inkSoft, spacing: 3);
   for (var i = 0; i < lines.length; i++) {
-    _answerRow(canvas, lines[i], answerTop + i * (tile + 14), tile);
+    _answerRow(canvas, lines[i], answerTop + i * (tile + 12), tile);
   }
 
   // The ad: a QR code to download the app.
@@ -271,7 +295,7 @@ double paintWinCard(Canvas canvas, WinCard card) {
     footerTop,
     footerHeight,
     'Can you solve it?',
-    'A new BluJem puzzle every day. Scan to get the free Android app.',
+    'A new BluJem every morning, afternoon and night. Scan to get the free Android app.',
   );
   return height;
 }
@@ -370,7 +394,7 @@ double paintAppCard(Canvas canvas, AppCard card) {
 void _appFooter(Canvas canvas, double top, double footerHeight, String title, String body) {
   final footer = Rect.fromLTWH(_margin, top, _width - 2 * _margin, footerHeight);
   canvas.drawRRect(RRect.fromRectAndRadius(footer, const Radius.circular(32)), Paint()..color = _ink);
-  const qrSize = 216.0;
+  final qrSize = footerHeight - 64;
   final qrBox = Rect.fromLTWH(footer.left + 32, footer.top + (footerHeight - qrSize) / 2, qrSize, qrSize);
   canvas.drawRRect(RRect.fromRectAndRadius(qrBox, const Radius.circular(16)), Paint()..color = Colors.white);
   _qr(canvas, appDownloadUrl, qrBox.deflate(14));
@@ -379,14 +403,22 @@ void _appFooter(Canvas canvas, double top, double footerHeight, String title, St
   _text(
     canvas,
     title,
-    footer.top + 44,
+    footer.top + footerHeight * 0.16,
     size: 44,
     weight: FontWeight.w700,
     color: Colors.white,
     left: textLeft,
     width: textWidth,
   );
-  _text(canvas, body, footer.top + 108, size: 30, color: const Color(0xFFE6E0D3), left: textLeft, width: textWidth);
+  _text(
+    canvas,
+    body,
+    footer.top + footerHeight * 0.39,
+    size: 30,
+    color: const Color(0xFFE6E0D3),
+    left: textLeft,
+    width: textWidth,
+  );
 }
 
 /// The answer on one line, or two split at the space nearest the middle when
@@ -440,56 +472,6 @@ void _answerRow(Canvas canvas, String line, double top, double tile) {
       }
       x += tile * 0.45 + gap;
     }
-  }
-}
-
-/// Where covers may go, as fractions of the cartoon: spread out, so the
-/// three picked never sit on top of one another.
-const _coverSpots = [
-  Offset(0.27, 0.24),
-  Offset(0.73, 0.3),
-  Offset(0.3, 0.62),
-  Offset(0.72, 0.7),
-  Offset(0.5, 0.45),
-  Offset(0.25, 0.86),
-];
-
-/// Blurs three round patches of the cartoon, each with a question mark, so a
-/// friend has to open the game to see the whole picture.
-void _coverParts(Canvas canvas, WinCard card, Rect src, Rect picture) {
-  final random = Random(card.seed);
-  final spots = [..._coverSpots]..shuffle(random);
-  final radius = min(picture.width, picture.height) * 0.17;
-  final blur = Paint()
-    ..filterQuality = FilterQuality.high
-    ..imageFilter = ui.ImageFilter.blur(sigmaX: 22, sigmaY: 22, tileMode: TileMode.clamp);
-  for (final spot in spots.take(3)) {
-    final centre = Offset(picture.left + spot.dx * picture.width, picture.top + spot.dy * picture.height);
-    final circle = Rect.fromCircle(center: centre, radius: radius);
-    canvas.save();
-    canvas.clipPath(Path()..addOval(circle));
-    canvas.drawImageRect(card.sheet, src, picture, blur);
-    canvas.drawOval(circle, Paint()..color = const Color(0x66FFFFFF));
-    canvas.restore();
-    canvas.drawCircle(
-      centre,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 5
-        ..color = _blue,
-    );
-    canvas.drawCircle(centre, radius * 0.36, Paint()..color = _blue);
-    _text(
-      canvas,
-      '?',
-      centre.dy - radius * 0.3,
-      size: radius * 0.5,
-      weight: FontWeight.w700,
-      color: Colors.white,
-      left: centre.dx - radius * 0.36,
-      width: radius * 0.72,
-    );
   }
 }
 

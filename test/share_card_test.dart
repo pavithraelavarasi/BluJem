@@ -15,7 +15,7 @@ Future<ui.Image> _decode(List<int> bytes) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('the card says the time big, then hints and points', () {
+  test('the card says the time big, then the points', () {
     WinCard card({int? seconds, int? points}) => WinCard(
       logo: _none,
       sheet: _none,
@@ -26,10 +26,17 @@ void main() {
       seconds: seconds,
       points: points,
     );
-    expect(card(seconds: 102).timeLine, 'Solved in 01:42');
+    expect(card(seconds: 102).timeLine, 'Solved in 1:42');
     expect(card().timeLine, 'Solved!');
     expect(card(points: 120).detailLine, '+120 points');
     expect(card(points: 0).detailLine, '');
+  });
+
+  test('the message invites friends to match the time', () {
+    expect(winMessage(today: true, seconds: 84), "I solved today's BluJem in 1:24. Can you match my time?!");
+    expect(winMessage(today: false, seconds: 725), 'I solved a BluJem in 12:05. Can you match my time?!');
+    expect(winMessage(today: true), "I solved today's BluJem. Can you solve it too?!");
+    expect(winMessage(today: true, seconds: 84).toLowerCase(), isNot(contains('jumble')));
   });
 
   test('the QR code and the shared message point at the download page', () {
@@ -48,14 +55,14 @@ void main() {
         answer: '"HOLES" STORY',
         title: "Today's BluJem",
         heading: 'Morning · Mon, Nov 9',
-        seed: 7,
+        captionTop: 0.85,
         seconds: 102,
         points: 120,
       );
       final png = await renderWinCard(card);
       final image = await _decode(png);
       expect(image.width, 1080);
-      expect(image.height, greaterThan(1200));
+      expect(image.height, lessThanOrEqualTo(winCardMaxHeight));
       // SHARE_CARD_OUT=/path/card.png flutter test … saves it to look at.
       final out = Platform.environment['SHARE_CARD_OUT'];
       if (out != null) File(out).writeAsBytesSync(png);

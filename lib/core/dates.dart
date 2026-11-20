@@ -21,6 +21,12 @@ String dayLabel([String? iso]) => DateFormat('EEE, MMM d').format(DateTime.tryPa
 String shortDate(DateTime day) => DateFormat('MMM d').format(day);
 
 /// Seconds as mm:ss.
+/// Minutes without a leading zero, for sentences: "1:24", "12:05".
+String shortClock(int seconds) {
+  final s = seconds < 0 ? 0 : seconds;
+  return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+}
+
 String clock(int seconds) {
   final s = seconds < 0 ? 0 : seconds;
   return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
