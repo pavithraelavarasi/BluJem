@@ -319,7 +319,7 @@ Future<Uint8List> renderAppCard(AppCard card) async {
 /// What a day of BluJem holds, for the app card.
 const _features = [
   ('3 new puzzles a day', 'Morning, afternoon and night'),
-  ('Sunday Mega BluJem', 'Six words and a bigger riddle'),
+  ('Every day of the week', 'Sundays too'),
   ('Win daily medals', 'Gold, silver and bronze'),
   ('Climb the leaderboard', 'Race friends against the clock'),
 ];

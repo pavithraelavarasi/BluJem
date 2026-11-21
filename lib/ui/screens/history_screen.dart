@@ -101,10 +101,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  /// "Sunday Mega BluJem · Nov 16", or "Sat, Nov 14 · 2 of 3 solved".
+  /// "Sunday Mega BluJem · Nov 16" for an old Sunday's one Mega, or
+  /// "Sat, Nov 14 · 2 of 3 solved".
   String _dayHeading(DateTime day, List<Puzzle> puzzles) {
     final date = dayLabel(isoDate(day));
-    if (day.weekday == DateTime.sunday) return 'Sunday Mega BluJem · ${date.split(', ').last}';
+    if (puzzles.length == 1 && puzzles.single.slotKind == Slot.sunday) {
+      return 'Sunday Mega BluJem · ${date.split(', ').last}';
+    }
     final records = context.read<RecordsRepository>();
     final solved = puzzles.where((p) => records.finished(p.id)).length;
     return '$date · $solved of ${puzzles.length} solved';
@@ -277,7 +280,7 @@ class _MonthCalendar extends StatelessWidget {
                     final some = count > 0 && !solved;
                     final isToday = day == today;
                     final picked = day == selected;
-                    final sunday = day.weekday == DateTime.sunday;
+                    final mega = list.any((p) => p.slotKind == Slot.sunday);
                     final medal = solved ? _gold : (some ? _silver : null);
                     return Padding(
                       padding: const EdgeInsets.all(2),
@@ -302,7 +305,7 @@ class _MonthCalendar extends StatelessWidget {
                                   color: medal != null ? _medalInk : (hasPuzzle ? p.ink : p.inkFaint),
                                 ),
                               ),
-                              if (sunday && hasPuzzle)
+                              if (mega)
                                 const Positioned(
                                   top: 2,
                                   right: 3,
@@ -325,7 +328,8 @@ class _MonthCalendar extends StatelessWidget {
                 const _Legend(color: _gold, label: 'Gold · all solved'),
                 const _Legend(color: _silver, label: 'Silver · some'),
                 _Legend(color: p.sunken, label: 'Not solved'),
-                const _Legend(color: _mega, label: 'Sunday Mega', star: true),
+                if (puzzleDays.values.any((l) => l.any((p) => p.slotKind == Slot.sunday)))
+                  const _Legend(color: _mega, label: 'Sunday Mega', star: true),
               ],
             ),
           ],

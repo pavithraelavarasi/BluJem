@@ -20,8 +20,8 @@ ChatGPT → **Explore GPTs** → **Create** → **Configure**.
 When a puzzle is ready, send it to BluJem with the uploadPuzzle action.
 
 - date: the day it is for, yyyy-MM-dd (India time).
-- slot: morning, evening (the 3:00 PM afternoon puzzle) or night on
-  Monday to Saturday; sunday on Sunday.
+- slot: morning, evening (the 3:00 PM afternoon puzzle) or night — every
+  day, Sunday included.
 - text: one scrambled word per line, the circled letters in CAPITALS and the
   rest in small letters; then an empty line; then the answer boxes as □,
   with the punctuation as it should be printed. Example:
@@ -32,7 +32,7 @@ When a puzzle is ready, send it to BluJem with the uploadPuzzle action.
 
     □□□-□□□-
     □□□
-  Four words (six on Sunday), at most 8 letters each. The number of □ must
+  Four words, at most 8 letters each. The number of □ must
   equal the number of capital letters.
 - answers.words: each word unscrambled, in the same order.
 - answers.final: the final answer's letters in the order of the boxes.
@@ -80,8 +80,8 @@ paths:
                   description: The puzzle's day, yyyy-MM-dd, India time.
                 slot:
                   type: string
-                  enum: [morning, evening, night, sunday]
-                  description: evening is the 3:00 PM afternoon puzzle. sunday only on Sundays.
+                  enum: [morning, evening, night]
+                  description: evening is the 3:00 PM afternoon puzzle. The same three every day, Sunday included.
                 text:
                   type: string
                   description: Scrambled words one per line (circled letters in CAPITALS), an empty line, then the answer boxes as □ with punctuation.

@@ -47,14 +47,17 @@ void main() {
       expect(slotStart('2026-12-01', Slot.night), DateTime.utc(2026, 12, 1, 15, 30));
       expect(slotStart('2026-12-06', Slot.sunday), DateTime.utc(2026, 12, 6, 0, 30));
       expect(Slot.forDate('2026-12-05'), [Slot.morning, Slot.evening, Slot.night]);
-      expect(Slot.forDate('2026-12-06'), [Slot.sunday]);
+      // Sunday has the same three; an old Mega BluJem still opens at 6:00.
+      expect(Slot.forDate('2026-12-06'), [Slot.morning, Slot.evening, Slot.night]);
       expect(Slot.sunday.words, 6);
       expect(Slot.evening.time, '3:00 PM');
       expect(Slot.night.time, '9:00 PM');
     });
 
-    test('a slot that does not belong to its day is refused', () {
-      expect(slotProblem('2026-12-06', Slot.morning), isNotNull);
+    test('Sunday takes the three slots; no new Mega BluJem', () {
+      expect(slotProblem('2026-12-06', Slot.morning), isNull);
+      expect(slotProblem('2026-12-06', Slot.night), isNull);
+      expect(slotProblem('2026-12-06', Slot.sunday), isNotNull);
       expect(slotProblem('2026-12-05', Slot.sunday), isNotNull);
       expect(slotProblem('2026-12-05', Slot.evening), isNull);
     });

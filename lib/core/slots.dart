@@ -1,10 +1,11 @@
 import 'package:intl/intl.dart';
 
-/// When each puzzle goes live, in India's time (UTC+5:30 all year). Monday to
-/// Saturday three four-word puzzles: morning, afternoon and night; Sunday one
-/// six-word Mega Jumble. The morning and Sunday puzzles open when the admin
-/// publishes them, but not before 9:00 (Sunday 6:00); the afternoon one opens
-/// at 15:00 and the night one at 21:00. The afternoon keeps its old name,
+/// When each puzzle goes live, in India's time (UTC+5:30 all year). Every
+/// day, Sunday included, has three four-word puzzles: morning, afternoon and
+/// night. The morning one opens when the admin publishes it, but not before
+/// 9:00; the afternoon one opens at 15:00 and the night one at 21:00.
+/// Sundays used to have one six-word Mega BluJem instead ([Slot.sunday]):
+/// none are taken any more, but those stored still open and show as before. The afternoon keeps its old name,
 /// evening, from when it was the second of two. The server's twin is
 /// catalyst/functions/jumble_data/lib/slots.js, which is what actually
 /// decides — this only says when to expect one.
@@ -26,12 +27,12 @@ enum Slot {
 
   static Slot? tryParse(String? name) => Slot.values.where((s) => s.name == name).firstOrNull;
 
-  /// The slots of the India date [isoDate]: Sunday's one, or a weekday's three.
-  static List<Slot> forDate(String isoDate) =>
-      isSunday(isoDate) ? const [Slot.sunday] : const [Slot.morning, Slot.evening, Slot.night];
+  /// The slots of the India date [isoDate]: the same three every day.
+  static List<Slot> forDate(String isoDate) => const [Slot.morning, Slot.evening, Slot.night];
 
-  /// A puzzle from before slots: its day's first.
-  static Slot defaultFor(String isoDate) => forDate(isoDate).first;
+  /// A puzzle stored without a slot: its day's first back then — the Mega
+  /// BluJem on a Sunday — so old ones keep their times.
+  static Slot defaultFor(String isoDate) => isSunday(isoDate) ? Slot.sunday : Slot.morning;
 
   /// "4:00 PM".
   String get time => DateFormat('h:mm a').format(DateTime(2000, 1, 1, hour));
@@ -59,7 +60,6 @@ String indiaDate(DateTime now) => DateFormat('yyyy-MM-dd').format(now.toUtc().ad
 /// Why [slot] cannot be on [isoDate], or null when it can.
 String? slotProblem(String isoDate, Slot slot) {
   if (DateTime.tryParse(isoDate) == null) return 'Choose a date.';
-  if (isSunday(isoDate) && slot != Slot.sunday) return 'Sunday has only the Mega BluJem.';
-  if (!isSunday(isoDate) && slot == Slot.sunday) return 'Only Sunday has the Mega BluJem.';
+  if (slot == Slot.sunday) return 'There is no Sunday Mega BluJem any more. Choose morning, afternoon or night.';
   return null;
 }

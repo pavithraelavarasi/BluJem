@@ -66,14 +66,17 @@ test('the morning opens no earlier than 9:00, the afternoon at 15:00, the night 
 	assert.equal(new Date(publishAt('2026-12-01', 'night')).toISOString(), '2026-12-01T15:30:00.000Z');
 });
 
-test('Sunday has one slot, opening no earlier than 6:00, and no other', () => {
-	assert.deepEqual(slotsFor('2026-12-06'), ['sunday']);
+test('every day, Sunday too, has the same three slots; no new Mega BluJem', () => {
+	assert.deepEqual(slotsFor('2026-12-06'), ['morning', 'evening', 'night']);
 	assert.deepEqual(slotsFor('2026-12-05'), ['morning', 'evening', 'night']);
-	assert.equal(new Date(publishAt('2026-12-06', 'sunday')).toISOString(), '2026-12-06T00:30:00.000Z');
-	assert.match(slotProblem('2026-12-06', 'morning'), /Sunday/);
-	assert.match(slotProblem('2026-12-05', 'sunday'), /not a Sunday/);
+	assert.equal(slotProblem('2026-12-06', 'morning'), null);
+	assert.equal(slotProblem('2026-12-06', 'night'), null);
+	assert.match(slotProblem('2026-12-06', 'sunday'), /no Sunday Mega/);
+	assert.match(slotProblem('2026-12-05', 'sunday'), /no Sunday Mega/);
 	assert.equal(slotProblem('2026-12-05', 'evening'), null);
 	assert.match(slotProblem('2026-02-30', 'morning'), /real date/);
+	// A Mega Jumble already stored still opens at 6:00.
+	assert.equal(new Date(publishAt('2026-12-06', 'sunday')).toISOString(), '2026-12-06T00:30:00.000Z');
 });
 
 test('India\'s date turns at its own midnight, not UTC\'s', () => {
@@ -161,12 +164,13 @@ test('without answers it is stored but not published', () => {
 	assert.match(warnings[0], /not published/);
 });
 
-test('a Sunday upload needs six words and the sunday slot', () => {
-	assert.match(prepareUpload({ ...upload, date: '2026-12-06' }).problems[0], /Sunday/);
-	assert.match(prepareUpload({ ...upload, date: '2026-12-06', slot: 'sunday' }).problems[0], /6 words/);
-	const sunday = prepareUpload({ date: '2026-12-06', slot: 'sunday', text: cases.valid[2].text });
-	assert.deepEqual(sunday.problems, []);
-	assert.equal(sunday.values.Difficulty, 'Mega');
+test('a Sunday takes a normal four-word upload in any of the three slots', () => {
+	for (const slot of ['morning', 'evening', 'night']) {
+		const sunday = prepareUpload({ ...upload, date: '2026-12-06', slot });
+		assert.deepEqual(sunday.problems, [], slot);
+		assert.equal(sunday.values.Slot, slot);
+	}
+	assert.match(prepareUpload({ ...upload, date: '2026-12-06', slot: 'sunday' }).problems[0], /no Sunday Mega/);
 });
 
 test('bad answers are reported, nothing is prepared', () => {

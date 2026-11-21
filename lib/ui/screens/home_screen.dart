@@ -95,7 +95,7 @@ class HomeScreen extends StatelessWidget {
     };
 
     // Every one of today's slots, the one for this hour highlighted: the
-    // latest whose time has come (none before 9 AM, or 6 AM on Sunday).
+    // latest whose time has come (none before 9 AM).
     final todayIso = indiaDate(DateTime.now());
     final slots = Slot.forDate(todayIso);
     final nowSlot = slots.lastWhere((s) => !slotStart(todayIso, s).isAfter(DateTime.now()), orElse: () => slots.first);

@@ -2,10 +2,14 @@
 
 /**
  * When each puzzle goes live, in India's time (IST, UTC+5:30, no daylight
- * saving). Monday to Saturday three 4-word puzzles: morning at 9:00,
- * afternoon at 15:00 and night at 21:00; Sunday one 6-word Mega Jumble. The
- * morning and Sunday puzzles open the moment the admin publishes them — but
- * not before 9:00 (Sunday 6:00), so one uploaded ahead waits for its time.
+ * saving). Every day, Sunday included, has three 4-word puzzles: morning at
+ * 9:00, afternoon at 15:00 and night at 21:00. The morning puzzle opens the
+ * moment the admin publishes it — but not before 9:00, so one uploaded ahead
+ * waits for its time.
+ *
+ * Sundays used to have one 6-word Mega Jumble instead (slot "sunday", from
+ * 6:00). No new ones are taken, but the slot stays so those already stored
+ * still open and show as before.
  * The afternoon and night ones open at their time sharp. The afternoon slot
  * keeps its old name, evening, from when it was the second of two at 16:00.
  * The app's twin is lib/core/slots.dart.
@@ -32,22 +36,24 @@ function isSunday(isoDate) {
 	return new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 0;
 }
 
-/** The slots a day has: Sunday's one, or a weekday's three. */
-function slotsFor(isoDate) {
-	return isSunday(isoDate) ? ['sunday'] : ['morning', 'evening', 'night'];
+/** The slots a day takes uploads for: three, every day of the week. */
+function slotsFor() {
+	return ['morning', 'evening', 'night'];
 }
 
-/** What a puzzle from before slots existed counts as: its day's first slot. */
+/**
+ * What a puzzle stored without a slot counts as: its day's first slot back
+ * then — the Mega Jumble on a Sunday — so those old rows keep their times.
+ */
 function defaultSlot(isoDate) {
-	return slotsFor(isoDate)[0];
+	return isSunday(isoDate) ? 'sunday' : 'morning';
 }
 
 /** Why [slot] cannot be on [isoDate], or null when it can. */
 function slotProblem(isoDate, slot) {
 	if (!isIsoDate(isoDate)) return 'The date must be a real date, written yyyy-MM-dd.';
-	if (!SLOTS[slot]) return 'The slot must be morning, evening, night or sunday.';
-	if (isSunday(isoDate) && slot !== 'sunday') return `${isoDate} is a Sunday: it has only the sunday slot.`;
-	if (!isSunday(isoDate) && slot === 'sunday') return `${isoDate} is not a Sunday: use morning, evening or night.`;
+	if (slot === 'sunday') return 'There is no Sunday Mega BluJem any more: use morning, evening or night, on Sundays too.';
+	if (!slotsFor(isoDate).includes(slot)) return 'The slot must be morning, evening or night.';
 	return null;
 }
 
