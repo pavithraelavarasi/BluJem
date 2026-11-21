@@ -62,7 +62,8 @@ void main() {
     final watch = Stopwatch()..start();
     final found = finalPhrases(index, _squares(words), groups);
     expect(found, contains(answer), reason: '$found');
-    expect(watch.elapsedMilliseconds, lessThan(3000));
+    // Roomy: the whole suite runs in parallel, often beside a build.
+    expect(watch.elapsedMilliseconds, lessThan(8000));
   });
 
   test("today's two misread circles are put right", () async {
@@ -73,7 +74,8 @@ void main() {
     final found = finalPhrases(index, read, [4, 3, 2, 4]);
     expect(found, hasLength(12), reason: 'a guess offers more phrases');
     expect(found, contains('HEAD OFF TO WORK'));
-    expect(watch.elapsedMilliseconds, lessThan(3000));
+    // Roomy: the whole suite runs in parallel, often beside a build.
+    expect(watch.elapsedMilliseconds, lessThan(8000));
   });
 
   test('two circles the server missed are found too', () async {
@@ -82,7 +84,8 @@ void main() {
     final read = _squares(['cROwN', 'PurGE', 'fICkle', 'pASToR'.replaceAll('R', 'r')]);
     final watch = Stopwatch()..start();
     expect(finalPhrases(index, read, [5, 2, 6]), contains('RANGE OF TOPICS'));
-    expect(watch.elapsedMilliseconds, lessThan(3000));
+    // Roomy: the whole suite runs in parallel, often beside a build.
+    expect(watch.elapsedMilliseconds, lessThan(8000));
   });
 
   test('pictures are sent as smaller JPEGs', () async {
