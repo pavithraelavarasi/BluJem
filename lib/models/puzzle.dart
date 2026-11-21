@@ -130,6 +130,12 @@ class Puzzle {
   /// Where the picture is kept on the server.
   final String sheetKey;
 
+  /// Where its wordless cartoon (no bubbles or caption, for the share card)
+  /// would be on the server: beside the cartoon, "-wordless.png" for the
+  /// extension. Not every puzzle has one. The server's twin is
+  /// catalyst/functions/jumble_data/lib/wordless.js.
+  String get wordlessKey => wordlessKeyFor(sheetKey);
+
   Slot get slotKind => Slot.tryParse(slot) ?? Slot.defaultFor(publishDate);
 
   /// When it goes live: as stored, or for an older sheet its day's first slot.
@@ -301,4 +307,11 @@ class Puzzle {
     'finalHash': finalHash,
     'sheetKey': sheetKey,
   };
+}
+
+/// The server key of the wordless picture of the cartoon at [sheetKey]; ''
+/// when there is no cartoon.
+String wordlessKeyFor(String sheetKey) {
+  final key = sheetKey.trim();
+  return key.isEmpty ? '' : '${key.replaceFirst(RegExp(r'\.[^./]+$'), '')}-wordless.png';
 }

@@ -128,6 +128,7 @@ class PublishSheet {
     required this.finalClue,
     required this.finalExplanation,
     this.cartoonOnly = false,
+    this.wordless,
   });
 
   final String publishDate;
@@ -142,6 +143,9 @@ class PublishSheet {
   /// builds the page from the words.
   final Uint8List image;
   final bool cartoonOnly;
+
+  /// The cartoon with no bubbles or caption, for the share card; optional.
+  final Uint8List? wordless;
   final double aspectRatio;
   final List<({String scrambled, String answer, List<BoxRect> boxes})> words;
   final String finalAnswer;
@@ -279,6 +283,7 @@ class AdminService {
             },
         ]),
         'sheetBase64': base64Encode(sheet.image),
+        if (sheet.wordless != null) 'wordlessBase64': base64Encode(sheet.wordless!),
       },
       timeout: const Duration(seconds: 90),
     );

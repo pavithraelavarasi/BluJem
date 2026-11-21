@@ -292,6 +292,17 @@ class PuzzleLibrary extends ChangeNotifier {
     return puzzle.withImage(SheetImage.file(file.path));
   }
 
+  /// [puzzle]'s wordless cartoon for the share card, downloaded once and kept;
+  /// null when it has none (or it could not be fetched just now).
+  Future<File?> wordlessImage(Puzzle puzzle) async {
+    final key = puzzle.wordlessKey;
+    if (key.isEmpty) return null;
+    final file = File('${_store.folder('sheets').path}/${puzzle.id}-wordless.png');
+    if (file.existsSync() && file.lengthSync() > 0) return file;
+    final ok = await _api.download(JumbleFunction.data, 'puzzles/sheet', {'key': key}, file);
+    return ok ? file : null;
+  }
+
   /// Newest first: by date, and on one date the later slot first.
   static List<Puzzle> _sorted(Iterable<Puzzle> puzzles) => [...puzzles]
     ..sort((a, b) {

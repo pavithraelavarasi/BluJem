@@ -410,7 +410,7 @@ class _DayTile extends StatelessWidget {
 /// One prepared day: the drawn sheet, its words to answer, the cartoon answer
 /// to settle, and Publish.
 class PublishScreen extends StatefulWidget {
-  const PublishScreen({super.key, required this.day, this.cartoon, this.slot, this.pattern = ''});
+  const PublishScreen({super.key, required this.day, this.cartoon, this.wordless, this.slot, this.pattern = ''});
 
   final DailyPuzzle day;
 
@@ -424,6 +424,9 @@ class PublishScreen extends StatefulWidget {
   /// letters, and only the cartoon is stored. Otherwise the server's collage
   /// is downloaded.
   final Uint8List? cartoon;
+
+  /// The cartoon with no bubbles or caption, for the share card; optional.
+  final Uint8List? wordless;
 
   @override
   State<PublishScreen> createState() => _PublishScreenState();
@@ -806,6 +809,7 @@ class _PublishScreenState extends State<PublishScreen> {
           finalClue: _clue.text.trim(),
           finalExplanation: _explanation.text.trim(),
           cartoonOnly: cartoon != null,
+          wordless: widget.wordless == null ? null : await shrinkForUpload(widget.wordless!),
         ),
       );
       if (live != null) await _service.unpublish(live);

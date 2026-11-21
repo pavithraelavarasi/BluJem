@@ -66,6 +66,8 @@ function uploadPage() {
 		</div>
 		<label for="cartoon">Cartoon <span class="hint">— the coloured cartoon only (PNG or JPEG). Leave empty to keep the one already uploaded.</span></label>
 		<input id="cartoon" type="file" accept="image/png,image/jpeg">
+		<label for="wordless">Wordless cartoon <span class="hint">— the same cartoon with no speech bubbles or caption, for the picture players share. Optional; leave empty to keep the one already uploaded.</span></label>
+		<input id="wordless" type="file" accept="image/png,image/jpeg">
 		<label for="text">Puzzle text <span class="hint">— one jumbled word per line, circled letters in CAPITALS; a blank line; then the answer boxes □ (or _), punctuation as printed. A new line in the boxes is where the answer wraps.</span></label>
 		<textarea id="text" spellcheck="false" placeholder="aDRra&#10;tuYpT&#10;hcNRcu&#10;cRaoCD&#10;&#10;□□□-□□□-&#10;□□□"></textarea>
 		<button class="plain" id="checkBtn">Check</button>
@@ -175,9 +177,11 @@ function uploadPage() {
 		btn.disabled = true;
 		try {
 			const file = $('cartoon').files[0];
+			const wordless = $('wordless').files[0];
 			const words = Array.from(document.querySelectorAll('[data-word]')).map((i) => i.value.trim());
 			const body = Object.assign(form(), {
 				cartoonBase64: file ? await readFile(file) : '',
+				wordlessBase64: wordless ? await readFile(wordless) : '',
 				answers: words.some(Boolean) || $('final').value.trim() ? { words, final: $('final').value.trim() } : null,
 				clue: $('clue').value.trim(),
 				explanation: $('explanation').value.trim()

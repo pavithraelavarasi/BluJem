@@ -55,6 +55,22 @@ function cartoonSource(body) {
 }
 
 /**
+ * The wordless cartoon (no bubbles or caption), for the share card: the
+ * second file ChatGPT attached, else wordlessBase64. {} when none was sent.
+ */
+function wordlessSource(body) {
+	const refs = Array.isArray(body.openaiFileIdRefs) ? body.openaiFileIdRefs.filter((r) => r && (typeof r === 'string' || r.download_link)) : [];
+	const ref = refs[1];
+	if (ref) {
+		const link = typeof ref === 'string' ? ref : ref.download_link;
+		if (!allowedImageUrl(link)) return { problem: 'The wordless cartoon link must come from ChatGPT.' };
+		return { url: link };
+	}
+	const base64 = String(body.wordlessBase64 || '');
+	return base64 ? { base64 } : {};
+}
+
+/**
  * The draft row to write, checked like an admin's upload — but the answers
  * are required, since the admin publishes it as it is.
  */
@@ -81,4 +97,4 @@ function draftPlace(rows, date, slot) {
 	return { replace: inSlot[0] || null };
 }
 
-module.exports = { keyMatches, allowedImageUrl, cartoonSource, prepareDraft, draftPlace };
+module.exports = { keyMatches, allowedImageUrl, cartoonSource, wordlessSource, prepareDraft, draftPlace };

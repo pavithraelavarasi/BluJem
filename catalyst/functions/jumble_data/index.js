@@ -8,7 +8,8 @@ const { asBool, puzzleFromRow, playerView, answersOf, isComplete } = require('./
 const { patternOf } = require('./lib/puzzle-text');
 const { prepareUpload, cartoonKey, imageType } = require('./lib/upload');
 const { uploadPage } = require('./lib/upload-page');
-const { keyMatches, cartoonSource, prepareDraft, draftPlace } = require('./lib/gpt-upload');
+const { keyMatches, cartoonSource, wordlessSource, prepareDraft, draftPlace } = require('./lib/gpt-upload');
+const { wordlessKey, isWordlessKey, cartoonKeysFor } = require('./lib/wordless');
 const { announceOnPublish, dueAtTimer, announce } = require('./lib/notify');
 const { cleanAbout, aboutProblem, aboutKey } = require('./lib/profile');
 
@@ -150,6 +151,20 @@ async function puzzleAnswers(app, caller, body, res) {
 }
 
 /**
+ * Stores [bytes] as the wordless picture of the cartoon at [sheetKey] (see
+ * lib/wordless.js). Returns a problem to show, or null once it is saved.
+ */
+async function saveWordless(app, sheetKey, bytes) {
+	if (!bytes || !bytes.length) return null;
+	const type = imageType(bytes);
+	if (!type) return 'The wordless cartoon must be a PNG or JPEG picture.';
+	if (bytes.length > MAX_SHEET_BYTES) return 'That wordless cartoon is too large (10 MB at most).';
+	await app.stratus().bucket(BUCKET)
+		.putObject(wordlessKey(sheetKey), Readable.from([bytes]), { overwrite: true, contentType: type });
+	return null;
+}
+
+/**
  * The admin's upload: date, slot, the cartoon and the puzzle text, with the
  * answers when he has them. Checked with the parser, the cartoon put in
  * Stratus under puzzles/{date}/{slot}/, and the slot's one row written —
@@ -190,6 +205,8 @@ async function uploadPuzzle(app, caller, body, res) {
 			.putObject(sheetKey, Readable.from([bytes]), { overwrite: true, contentType: type });
 	}
 	if (!sheetKey) return sendJson(res, 400, { problems: ['Choose the cartoon picture.'] });
+	const wordlessProblem = await saveWordless(app, sheetKey, Buffer.from(String(body.wordlessBase64 || ''), 'base64'));
+	if (wordlessProblem) return sendJson(res, 400, { problems: [wordlessProblem] });
 
 	const row = { ...values, SheetKey: sheetKey };
 	if (current && !body.explanation) row.FinalExplanation = current.FinalExplanation || '';
@@ -252,6 +269,22 @@ async function gptUpload(req, res) {
 	// Its own key, so a draft never touches the picture of a published puzzle.
 	const sheetKey = `drafts/${values.PublishDate}/${values.Slot}/cartoon.${type === 'image/png' ? 'png' : 'jpg'}`;
 	await app.stratus().bucket(BUCKET).putObject(sheetKey, Readable.from([bytes]), { overwrite: true, contentType: type });
+
+	// A second picture, when sent, is the wordless cartoon for the share card.
+	const wordless = wordlessSource(body);
+	if (wordless.problem) return sendJson(res, 400, { problems: [wordless.problem] });
+	if (wordless.url || wordless.base64) {
+		let extra;
+		if (wordless.url) {
+			const got = await fetch(wordless.url);
+			if (!got.ok) return sendJson(res, 400, { problems: ['The wordless cartoon could not be downloaded from ChatGPT.'] });
+			extra = Buffer.from(await got.arrayBuffer());
+		} else {
+			extra = Buffer.from(wordless.base64, 'base64');
+		}
+		const problem = await saveWordless(app, sheetKey, extra);
+		if (problem) return sendJson(res, 400, { problems: [problem] });
+	}
 
 	const row = { ...values, SheetKey: sheetKey };
 	const table = app.datastore().table(PUZZLES);
@@ -363,6 +396,10 @@ async function publishPuzzle(app, caller, body, res) {
 			.bucket(BUCKET)
 			.putObject(sheetKey, Readable.from(bytes), { overwrite: true });
 	}
+	if (body.wordlessBase64) {
+		const problem = await saveWordless(app, sheetKey, Buffer.from(String(body.wordlessBase64), 'base64'));
+		if (problem) return sendJson(res, 400, { error: problem });
+	}
 
 	const publishDate = String(body.publishDate);
 	const slot = SLOTS[body.slot] ? String(body.slot) : (isIsoDate(publishDate) ? defaultSlot(publishDate) : 'morning');
@@ -453,7 +490,10 @@ async function streamSheet(app, caller, body, res) {
 
 	// A player only gets the picture of a puzzle that is out.
 	if (caller.role !== 'admin') {
-		const rows = (await zcql(app, `SELECT * FROM ${PUZZLES} WHERE SheetKey = '${quote(key)}'`))
+		// A wordless picture goes with its cartoon: out when that puzzle is.
+		const keys = isWordlessKey(key) ? cartoonKeysFor(key) : [key];
+		const where = keys.map((k) => `SheetKey = '${quote(k)}'`).join(' OR ');
+		const rows = (await zcql(app, `SELECT * FROM ${PUZZLES} WHERE ${where}`))
 			.map((r) => r[PUZZLES]).filter(Boolean);
 		if (!rows.some((r) => asBool(r.Published) && isReleased(r))) {
 			return sendJson(res, 404, { error: 'That puzzle is not out yet.' });

@@ -29,6 +29,9 @@ class TypeLettersScreen extends StatefulWidget {
 class _TypeLettersScreenState extends State<TypeLettersScreen> {
   final _text = TextEditingController();
   Uint8List? _cartoon;
+
+  /// The same cartoon with no bubbles or caption, for the share card.
+  Uint8List? _wordless;
   String? _error;
 
   @override
@@ -43,11 +46,19 @@ class _TypeLettersScreenState extends State<TypeLettersScreen> {
     super.dispose();
   }
 
-  Future<void> _pickCartoon() async {
+  Future<Uint8List?> _pick() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 2000);
-    if (picked == null) return;
-    final bytes = await picked.readAsBytes();
-    if (mounted) setState(() => _cartoon = bytes);
+    return picked?.readAsBytes();
+  }
+
+  Future<void> _pickCartoon() async {
+    final bytes = await _pick();
+    if (bytes != null && mounted) setState(() => _cartoon = bytes);
+  }
+
+  Future<void> _pickWordless() async {
+    final bytes = await _pick();
+    if (bytes != null && mounted) setState(() => _wordless = bytes);
   }
 
   Future<void> _next() async {
@@ -80,7 +91,8 @@ class _TypeLettersScreenState extends State<TypeLettersScreen> {
     );
     final published = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => PublishScreen(day: day, cartoon: _cartoon, slot: widget.slot, pattern: puzzle.pattern),
+        builder: (_) =>
+            PublishScreen(day: day, cartoon: _cartoon, wordless: _wordless, slot: widget.slot, pattern: puzzle.pattern),
       ),
     );
     if (published == true && mounted) Navigator.of(context).pop(true);
@@ -110,6 +122,27 @@ class _TypeLettersScreenState extends State<TypeLettersScreen> {
               onPressed: _pickCartoon,
               icon: const Icon(Icons.image_rounded),
               label: Text(_cartoon == null ? 'Choose the cartoon' : 'Choose another cartoon'),
+            ),
+            const SizedBox(height: 20),
+            Text('Wordless cartoon', style: t.titleMedium),
+            Text(
+              'The same cartoon with no speech bubbles or caption. Players share this one: '
+              'it makes friends curious without giving the pun away. Optional.',
+              style: TextStyle(color: p.inkSoft),
+            ),
+            const SizedBox(height: 8),
+            if (_wordless != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(_wordless!, height: 160, fit: BoxFit.contain),
+                ),
+              ),
+            OutlinedButton.icon(
+              onPressed: _pickWordless,
+              icon: const Icon(Icons.hide_image_outlined),
+              label: Text(_wordless == null ? 'Choose the wordless cartoon' : 'Choose another wordless cartoon'),
             ),
             const SizedBox(height: 20),
             Text('Letters', style: t.titleMedium),

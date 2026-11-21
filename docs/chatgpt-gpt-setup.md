@@ -37,8 +37,9 @@ When a puzzle is ready, send it to BluJem with the uploadPuzzle action.
 - answers.words: each word unscrambled, in the same order.
 - answers.final: the final answer's letters in the order of the boxes.
 - clue: the cartoon's caption, if it has one.
-- The cartoon: attach the cartoon image you made (only the cartoon, no
-  words or boxes drawn on it).
+- The pictures: attach the cartoon image you made first (only the cartoon,
+  no letters or answer boxes drawn on it), then the same cartoon with no
+  speech bubbles or caption — the wordless one players share.
 
 If BluJem answers with problems, fix them and send again. Sending the same
 date and slot again replaces the earlier draft. Tell me when it is saved:
@@ -102,7 +103,7 @@ paths:
                 openaiFileIdRefs:
                   type: array
                   items: { type: string }
-                  description: The cartoon image file.
+                  description: The cartoon first; then, optionally, the same cartoon with no speech bubbles or caption (for the share picture).
       responses:
         '200':
           description: Saved as a draft.

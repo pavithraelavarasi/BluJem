@@ -5,11 +5,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:qr/qr.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../core/dates.dart';
 import '../data/api_client.dart';
+import '../data/puzzle_library.dart';
 import '../game/caption.dart';
 import '../game/game_controller.dart';
 import '../models/box_rect.dart';
@@ -86,20 +88,35 @@ Future<void> shareWin(BuildContext context, GameController game) async {
   final past = game.completed ? null : game.pastWin;
   final answer = past?.finalAnswer ?? puzzle.finalFrom(game.board.finalRow.letters);
   final seconds = past != null ? (past.timed ? past.seconds : null) : (game.timedOut ? null : game.elapsedAtCompletion);
+  final library = context.read<PuzzleLibrary>();
   try {
-    final sheet = await loadSheet(puzzle);
     final logo = await _asset('assets/images/blujem_logo.png');
     final today = puzzle.publishDate == isoDate(DateTime.now());
-    final pixels = await sheet.image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    // The wordless cartoon when the admin gave one: the whole picture, no
+    // words to give the pun away. Otherwise the cartoon above its caption.
+    final wordless = await _decodeFile(await library.wordlessImage(puzzle));
+    final ui.Image picture;
+    final BoxRect region;
+    double? caption;
+    if (wordless != null) {
+      picture = wordless;
+      region = const BoxRect(0, 0, 1, 1);
+    } else {
+      final sheet = await loadSheet(puzzle);
+      picture = sheet.image;
+      region = sheet.cartoon;
+      final pixels = await sheet.image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (pixels != null) {
+        caption = captionTop(pixels.buffer.asUint8List(), sheet.image.width, sheet.image.height, sheet.cartoon);
+      }
+    }
     final card = WinCard(
       logo: logo,
-      sheet: sheet.image,
-      cartoon: sheet.cartoon,
+      sheet: picture,
+      cartoon: region,
       answer: answer,
       title: today ? "Today's BluJem" : 'BluJem',
-      captionTop: pixels == null
-          ? null
-          : captionTop(pixels.buffer.asUint8List(), sheet.image.width, sheet.image.height, sheet.cartoon),
+      captionTop: caption,
       heading: '${puzzle.slotKind.label} · ${dayLabel(puzzle.publishDate)}',
       seconds: seconds,
       // A replay or an earlier solve shows no points: they were not won now.
@@ -172,6 +189,18 @@ String? appBrag(PlayerStats? stats) {
   if (stats == null || stats.puzzlesCompleted == 0) return null;
   final solved = stats.puzzlesCompleted == 1 ? '1 puzzle solved' : '${stats.puzzlesCompleted} puzzles solved';
   return stats.currentStreak > 1 ? "I'm on a ${stats.currentStreak}-day streak · $solved" : 'I have $solved';
+}
+
+/// [file] decoded, or null when there is none or it is not a picture.
+Future<ui.Image?> _decodeFile(File? file) async {
+  if (file == null) return null;
+  try {
+    final codec = await ui.instantiateImageCodec(await file.readAsBytes());
+    return (await codec.getNextFrame()).image;
+  } catch (e) {
+    debugPrint('Wordless cartoon unreadable: $e');
+    return null;
+  }
 }
 
 Future<ui.Image> _asset(String path) async {
