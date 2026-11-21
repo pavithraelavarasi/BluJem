@@ -294,6 +294,8 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                       game: game,
                       fromDay: game.isDaySlot && !game.standingIn ? null : longDate(game.puzzle.publishDate),
                       pointsOn: game.scores.available && !game.playedBefore,
+                      streak: context.watch<RecordsRepository>().stats.currentStreak,
+                      bestSeconds: context.watch<RecordsRepository>().stats.bestSeconds,
                     ),
                   ],
                   if (game.awaitingToday) ...[
