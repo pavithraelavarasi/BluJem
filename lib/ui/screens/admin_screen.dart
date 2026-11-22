@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../admin/admin_service.dart';
@@ -31,25 +30,19 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  /// How often, and how many times, a request is checked: up to five minutes.
-  /// A check costs the server a few milliseconds, so it is often enough that
-  /// the result shows within seconds of being ready.
-  static const _pollEvery = Duration(seconds: 3);
-  static const _polls = 100;
-
   List<DailyPuzzle>? _days;
   bool _loading = false;
   String? _progress;
   String? _message;
   DateTime _date = dateOnly(DateTime.now());
-  late Slot _slot = Slot.defaultFor(isoDate(_date));
+  late Slot _slot = Slot.forDate(isoDate(_date)).first;
 
   AdminService get _service => context.read<AdminService>();
 
   /// [_date], keeping the slot when that day has it.
   void _setDate(DateTime day) {
     _date = day;
-    if (!Slot.forDate(isoDate(day)).contains(_slot)) _slot = Slot.defaultFor(isoDate(day));
+    if (!Slot.forDate(isoDate(day)).contains(_slot)) _slot = Slot.forDate(isoDate(day)).first;
   }
 
   @override
@@ -80,59 +73,6 @@ class _AdminScreenState extends State<AdminScreen> {
       lastDate: today.add(const Duration(days: 60)),
     );
     if (picked != null) setState(() => _setDate(picked));
-  }
-
-  Future<void> _upload() async {
-    final picked = await ImagePicker().pickMultiImage(limit: 3);
-    if (picked.isEmpty || !mounted) return;
-    setState(() {
-      _message = null;
-      _progress = 'Preparing the picture…';
-    });
-    try {
-      final images = await Future.wait([for (final f in picked.take(3)) f.readAsBytes().then(shrinkForUpload)]);
-      if (!mounted) return;
-      setState(() => _progress = 'Sending the puzzle…');
-      final id = await _service.start(images, date: isoDate(_date));
-      if (!mounted) return;
-      final reading = Stopwatch()..start();
-      setState(() => _progress = 'Reading and drawing the puzzle — usually under two minutes…');
-      var status = 'PENDING';
-      for (var i = 0; i < _polls && status == 'PENDING' && mounted; i++) {
-        await Future<void>.delayed(_pollEvery);
-        if (mounted) {
-          setState(
-            () => _progress =
-                'Reading and drawing the puzzle — ${reading.elapsed.inSeconds} s so far, '
-                'usually under two minutes…',
-          );
-        }
-        try {
-          status = await _service.status(id);
-        } catch (_) {
-          // A missed check is retried on the next one.
-        }
-      }
-      if (!mounted) return;
-      setState(() {
-        _progress = null;
-        _message = switch (status) {
-          'RENDERED' => 'The puzzle is ready. Open it below to check the answers and publish.',
-          'NEEDS_REVIEW' => 'The puzzle is ready, but something needs checking — open it below.',
-          'STALE_SOURCE' => "That isn't the puzzle for ${monthDay(_date)}, so nothing was drawn.",
-          'PENDING' => 'Still working — pull down to refresh in a minute.',
-          _ => 'The puzzle could not be read. Try a clearer image.',
-        };
-      });
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _progress = null;
-          _message = '$e';
-        });
-      }
-    }
   }
 
   Future<void> _typeLetters() async {
@@ -259,9 +199,8 @@ class _AdminScreenState extends State<AdminScreen> {
                         Text('Upload a puzzle', style: t.titleMedium),
                         const SizedBox(height: 4),
                         Text(
-                          'Type the letters and choose the cartoon: only those are stored, and the app builds the page. '
-                          'Or choose the newspaper puzzle image — one picture of the whole puzzle, or up to three '
-                          'pieces — and the server reads it.',
+                          'Choose the cartoon and its wordless version, and type the letters: only those are stored, '
+                          'and the app builds the page.',
                           style: TextStyle(color: p.inkSoft),
                         ),
                         const SizedBox(height: 12),
@@ -275,14 +214,8 @@ class _AdminScreenState extends State<AdminScreen> {
                         const SizedBox(height: 8),
                         FilledButton.icon(
                           onPressed: busy ? null : _typeLetters,
-                          icon: const Icon(Icons.keyboard_rounded),
-                          label: const Text('Type the letters'),
-                        ),
-                        const SizedBox(height: 8),
-                        OutlinedButton.icon(
-                          onPressed: busy ? null : _upload,
-                          icon: const Icon(Icons.upload_rounded),
-                          label: const Text('Choose puzzle image'),
+                          icon: const Icon(Icons.add_photo_alternate_rounded),
+                          label: const Text('Add cartoon & letters'),
                         ),
                         if (busy) ...[
                           const SizedBox(height: 16),
@@ -469,7 +402,7 @@ class _PublishScreenState extends State<PublishScreen> {
   late DateTime _date = _startDate();
   late Slot _slot = widget.slot != null && Slot.forDate(isoDate(_date)).contains(widget.slot)
       ? widget.slot!
-      : Slot.defaultFor(isoDate(_date));
+      : Slot.forDate(isoDate(_date)).first;
 
   /// Which squares are circled. The server's reading, which can miss one, so
   /// the admin can tap a square to fix it.
@@ -730,7 +663,7 @@ class _PublishScreenState extends State<PublishScreen> {
     if (picked == null) return;
     setState(() {
       _date = picked;
-      if (!Slot.forDate(isoDate(picked)).contains(_slot)) _slot = Slot.defaultFor(isoDate(picked));
+      if (!Slot.forDate(isoDate(picked)).contains(_slot)) _slot = Slot.forDate(isoDate(picked)).first;
     });
   }
 
