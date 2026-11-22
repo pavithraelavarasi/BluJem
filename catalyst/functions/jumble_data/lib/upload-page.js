@@ -35,6 +35,9 @@ function uploadPage() {
 	button { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 18px; border: 1px solid var(--accent); cursor: pointer; margin: 16px 8px 0 0; }
 	button.primary { background: var(--accent); color: var(--bg); }
 	button.plain { background: transparent; color: var(--accent); }
+	button.social { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; background: #fff; color: #1f1f1f; border: 1px solid #dadce0; }
+	button.social svg { width: 20px; height: 20px; }
+	.or { text-align: center; color: var(--muted, #8a8a8a); font-size: 13px; margin: 18px 0 4px; }
 	button:disabled { opacity: 0.5; cursor: default; }
 	.msg { margin-top: 14px; white-space: pre-line; }
 	.bad { color: var(--bad); } .good { color: var(--good); }
@@ -52,6 +55,9 @@ function uploadPage() {
 
 	<section id="signin">
 		<h2>Sign in</h2>
+		<button class="social" id="socialBtn"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Sign in with Google or Zoho</button>
+		<div class="msg" id="socialMsg"></div>
+		<div class="or">or with a BluJem password</div>
 		<label for="email">Email</label><input id="email" type="email" autocomplete="username">
 		<label for="password">Password</label><input id="password" type="password" autocomplete="current-password">
 		<button class="primary" id="signinBtn">Sign in</button>
@@ -128,6 +134,40 @@ function uploadPage() {
 	function signOut() { token = ''; sessionStorage.removeItem('blujemToken'); $('signin').classList.remove('hidden'); $('form').classList.add('hidden'); $('upcoming').classList.add('hidden'); $('draft').classList.add('hidden'); }
 
 	function signedIn() { $('signin').classList.add('hidden'); $('form').classList.remove('hidden'); $('upcoming').classList.remove('hidden'); loadList(); }
+
+	// Google or Zoho: Catalyst's own sign-in page checks the account (no
+	// password ever reaches this page) and sends the browser back here; its
+	// session then becomes a BluJem one, the same way the app does it.
+	$('socialBtn').onclick = () => {
+		location.href = '/__catalyst/auth/login?service_url=' + encodeURIComponent(location.pathname + '?social=1');
+	};
+
+	function cookie(name) {
+		const hit = document.cookie.split('; ').find((c) => c.startsWith(name + '='));
+		return hit ? decodeURIComponent(hit.slice(name.length + 1)) : '';
+	}
+
+	async function finishSocial() {
+		history.replaceState(null, '', location.pathname);
+		show($('socialMsg'), 'Signing in…', true);
+		try {
+			const res = await fetch(AUTH + 'zoho', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/json', 'X-ZCSRF-TOKEN': 'zd_csrparam=' + cookie('ZD_CSRF_TOKEN') },
+				body: '{}'
+			});
+			let reply = {};
+			try { reply = await res.json(); } catch (e) {}
+			if (res.status === 401) throw new Error('The Google or Zoho sign-in did not finish. Try again.');
+			if (!res.ok) throw new Error(reply.error || 'Sign-in did not finish. Try again.');
+			if (!reply.user || reply.user.role !== 'admin') {
+				show($('socialMsg'), (reply.user ? reply.user.email + ' is' : 'This account is') + ' not a BluJem admin.', false);
+				return;
+			}
+			token = reply.token; sessionStorage.setItem('blujemToken', token); $('socialMsg').textContent = ''; signedIn();
+		} catch (e) { show($('socialMsg'), e.message, false); }
+	}
 
 	$('signinBtn').onclick = async () => {
 		try {
@@ -258,6 +298,7 @@ function uploadPage() {
 	$('date').value = tomorrow;
 	fillSlots();
 	if (token) signedIn();
+	else if (new URLSearchParams(location.search).get('social')) finishSocial();
 })();
 </script>
 </body>
