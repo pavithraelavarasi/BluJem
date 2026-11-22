@@ -65,7 +65,15 @@ function uploadPage() {
 	</section>
 
 	<section id="form" class="hidden">
-		<h2>Puzzle</h2>
+		<h2 id="formTitle">Puzzle</h2>
+		<div id="editing" class="hidden" style="margin-bottom:12px">
+			<div class="msg good" id="editingText" style="margin-top:0"></div>
+			<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0">
+				<figure style="margin:0" id="editCartoonBox"><img id="editCartoon" alt="" style="max-height:160px;border-radius:8px;border:1px solid var(--line)"><figcaption class="hint">Cartoon now</figcaption></figure>
+				<figure style="margin:0" id="editWordlessBox"><img id="editWordless" alt="" style="max-height:160px;border-radius:8px;border:1px solid var(--line)"><figcaption class="hint">Wordless now</figcaption></figure>
+			</div>
+			<button class="plain" id="cancelEdit" style="margin:0">Cancel edit</button>
+		</div>
 		<div class="row">
 			<div><label for="date">Date</label><input id="date" type="date"></div>
 			<div><label for="slot">Slot</label><select id="slot"></select></div>
@@ -93,7 +101,7 @@ function uploadPage() {
 
 	<section id="upcoming" class="hidden">
 		<h2>Uploaded puzzles</h2>
-		<table><thead><tr><th>Date</th><th>Slot</th><th>Goes live</th><th>Status</th></tr></thead><tbody id="list"></tbody></table>
+		<table><thead><tr><th>Date</th><th>Slot</th><th>Goes live</th><th>Status</th><th></th></tr></thead><tbody id="list"></tbody></table>
 		<div class="msg" id="listMsg"></div>
 	</section>
 
@@ -191,16 +199,97 @@ function uploadPage() {
 
 	const form = () => ({ date: $('date').value, slot: $('slot').value, text: $('text').value });
 
-	$('checkBtn').onclick = async () => {
+	$('checkBtn').onclick = () => check();
+	async function check() {
 		try {
 			const reply = await call(DATA + 'puzzles/upload', Object.assign(form(), { dryRun: true }));
-			if (reply.problems && reply.problems.length) { show($('checkMsg'), reply.problems.join('\\n'), false); return; }
+			if (reply.problems && reply.problems.length) { show($('checkMsg'), reply.problems.join('\\n'), false); return false; }
 			const p = reply.parsed;
 			show($('checkMsg'), 'Looks right: ' + p.words.length + ' words, ' + p.pattern.boxes + ' answer boxes (' + p.pattern.groups.join('-') + '). Goes live ' + reply.goesLive + '.', true);
 			$('wordAnswers').innerHTML = p.words.map((w, i) => '<label>Word ' + (i + 1) + ' <span class="hint">' + w.letters + '</span></label><input data-word="' + i + '" maxlength="' + w.letters.length + '">').join('');
 			if (p.clue && !$('clue').value) $('clue').value = p.clue;
 			$('answers').classList.remove('hidden');
-		} catch (e) { show($('checkMsg'), e.message, false); }
+			return true;
+		} catch (e) { show($('checkMsg'), e.message, false); return false; }
+	}
+
+	// ---- Editing a puzzle already uploaded, live or not: the form is filled
+	// with it, its date and slot locked, and Upload saves it in place — same
+	// puzzle, same opening time, no second notification. Pictures left empty
+	// stay as they are.
+	let listed = {};
+	let editing = null;
+	const NL = String.fromCharCode(10);
+
+	// Only cartoon puzzles, whose page the app builds from the letters; an
+	// old full newspaper sheet keeps its own layout and is not edited here.
+	function editable(p) {
+		const key = String(p.sheetKey || '');
+		return key.startsWith('puzzles/') || key.startsWith('drafts/') || key.includes('-cartoon');
+	}
+
+	// The text as it was typed, or rebuilt from the stored words: circled
+	// letters in capitals, a blank line, then the answer boxes.
+	function puzzleTextOf(p) {
+		if (p.puzzleText) return p.puzzleText;
+		let words = [];
+		try { words = JSON.parse(p.words || '[]'); } catch (e) {}
+		const lines = words.map((w) => [...String(w.scrambled || '')].map((c, i) => ((w.boxes || [])[i] || {}).c ? c.toUpperCase() : c.toLowerCase()).join(''));
+		return lines.join(NL) + NL + NL + String(p.finalPattern || '');
+	}
+
+	async function picture(key, img, box) {
+		img.removeAttribute('src');
+		if (box) box.style.display = 'none';
+		if (!key) return;
+		try {
+			const res = await fetch(DATA + 'puzzles/sheet', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Jumble-Token': token }, body: JSON.stringify({ key }) });
+			if (res.ok) { img.src = URL.createObjectURL(await res.blob()); if (box) box.style.display = ''; }
+		} catch (e) {}
+	}
+
+	async function startEdit(p) {
+		editing = p;
+		$('date').value = p.publishDate;
+		fillSlots();
+		$('slot').value = p.slot;
+		$('date').disabled = true;
+		$('slot').disabled = true;
+		$('cartoon').value = '';
+		$('wordless').value = '';
+		$('text').value = puzzleTextOf(p);
+		$('clue').value = p.finalClue || '';
+		$('explanation').value = p.finalExplanation || '';
+		$('uploadMsg').textContent = '';
+		$('formTitle').textContent = 'Edit puzzle';
+		$('editingText').textContent = 'Editing ' + p.publishDate + ' · ' + (SLOT_NAMES[p.slot] || p.slot) + (p.published ? ' (already published)' : '') + '. Change anything, then tap Upload: it is saved in place, players keep their results and get no second notification. Choose a picture only to replace it.';
+		$('editing').classList.remove('hidden');
+		$('form').scrollIntoView({ behavior: 'smooth' });
+		picture(p.sheetKey, $('editCartoon'), $('editCartoonBox'));
+		const sheet = String(p.sheetKey || '');
+		picture(sheet ? sheet.replace(/[.][^./]+$/, '') + '-wordless.png' : '', $('editWordless'), $('editWordlessBox'));
+		if (!(await check())) return;
+		let words = [];
+		try { words = JSON.parse(p.words || '[]'); } catch (e) {}
+		document.querySelectorAll('[data-word]').forEach((input, i) => { input.value = (words[i] && words[i].answer) || ''; });
+		$('final').value = String(p.finalAnswer || '').replace(/[^A-Za-z]+/g, ' ').trim();
+		$('clue').value = p.finalClue || '';
+		$('explanation').value = p.finalExplanation || '';
+	}
+
+	function endEdit() {
+		editing = null;
+		$('date').disabled = false;
+		$('slot').disabled = false;
+		$('formTitle').textContent = 'Puzzle';
+		$('editing').classList.add('hidden');
+	}
+
+	$('cancelEdit').onclick = () => {
+		endEdit();
+		$('text').value = '';
+		$('answers').classList.add('hidden');
+		$('checkMsg').textContent = '';
 	};
 
 	function readFile(file) {
@@ -230,6 +319,8 @@ function uploadPage() {
 			const reply = await call(DATA + 'puzzles/upload', body);
 			if (reply.problems && reply.problems.length) { show($('uploadMsg'), reply.problems.join('\\n'), false); return; }
 			show($('uploadMsg'), (reply.published ? 'Published. ' : 'Saved. ') + 'Goes live ' + reply.goesLive + '.' + (reply.notified && reply.notified.sent ? ' Players have been notified.' : '') + (reply.warnings && reply.warnings.length ? '\\n' + reply.warnings.join('\\n') : ''), true);
+			if (editing && !reply.published) show($('uploadMsg'), 'Saved, but NOT published: fill in every answer and the final answer, then Upload again.', false);
+			else endEdit();
 			loadList();
 		} catch (e) { show($('uploadMsg'), e.message, false); }
 		finally { btn.disabled = false; }
@@ -251,12 +342,16 @@ function uploadPage() {
 				.sort((a, b) => a.publishAt - b.publishAt);
 			const when = (ms) => new Date(ms).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 			drafts = {};
+			listed = {};
 			$('list').innerHTML = rows.length ? rows.map((p) => {
 				let status = p.published ? (p.publishAt <= Date.now() ? 'Live' : 'Scheduled') : 'Needs answers';
 				if (!p.published && p.finalAnswer) { drafts[p.id] = p; status = '<b>Draft</b> <button class="plain" data-check="' + esc(p.id) + '" style="margin:0;padding:4px 10px">Check</button>'; }
-				return '<tr><td>' + esc(p.publishDate) + '</td><td>' + esc(SLOT_NAMES[p.slot] || p.slot) + '</td><td>' + when(p.publishAt) + '</td><td>' + status + '</td></tr>';
-			}).join('') : '<tr><td colspan="4">Nothing uploaded from today on.</td></tr>';
+				listed[p.id] = p;
+				const edit = editable(p) ? '<button class="plain" data-edit="' + esc(p.id) + '" style="margin:0;padding:4px 10px">Edit</button>' : '';
+				return '<tr><td>' + esc(p.publishDate) + '</td><td>' + esc(SLOT_NAMES[p.slot] || p.slot) + '</td><td>' + when(p.publishAt) + '</td><td>' + status + '</td><td>' + edit + '</td></tr>';
+			}).join('') : '<tr><td colspan="5">Nothing uploaded from today on.</td></tr>';
 			document.querySelectorAll('[data-check]').forEach((b) => { b.onclick = () => openDraft(drafts[b.dataset.check]); });
+			document.querySelectorAll('[data-edit]').forEach((b) => { b.onclick = () => startEdit(listed[b.dataset.edit]); });
 		} catch (e) { $('list').innerHTML = '<tr><td colspan="4" class="bad">' + esc(e.message) + '</td></tr>'; }
 	}
 

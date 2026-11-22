@@ -89,6 +89,7 @@ class Puzzle {
     this.finalPattern = '',
     this.finalHash = '',
     this.sheetKey = '',
+    this.sheetVersion = '',
   });
 
   final String id;
@@ -129,6 +130,10 @@ class Puzzle {
 
   /// Where the picture is kept on the server.
   final String sheetKey;
+
+  /// Changes when an admin edits the puzzle, so a replaced picture is
+  /// downloaded again rather than the old one kept.
+  final String sheetVersion;
 
   /// Where its wordless cartoon (no bubbles or caption, for the share card)
   /// would be on the server: beside the cartoon, "-wordless.png" for the
@@ -234,6 +239,7 @@ class Puzzle {
     finalPattern: finalPattern,
     finalHash: finalHash,
     sheetKey: sheetKey,
+    sheetVersion: sheetVersion,
   );
 
   /// Reads the server's row (whose lists arrive as JSON text), the local
@@ -283,6 +289,7 @@ class Puzzle {
       finalPattern: '${j['finalPattern'] ?? ''}',
       finalHash: '${j['finalHash'] ?? ''}',
       sheetKey: '${j['sheetKey'] ?? ''}',
+      sheetVersion: '${j['sheetVersion'] ?? ''}',
     );
   }
 
@@ -306,6 +313,7 @@ class Puzzle {
     'finalPattern': finalPattern,
     'finalHash': finalHash,
     'sheetKey': sheetKey,
+    'sheetVersion': sheetVersion,
   };
 }
 

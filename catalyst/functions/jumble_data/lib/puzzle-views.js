@@ -40,6 +40,9 @@ function puzzleFromRow(row) {
 		difficulty: row.Difficulty || 'Easy',
 		timeLimitSeconds: Number(row.TimeLimitSeconds || 300),
 		sheetKey: row.SheetKey || '',
+		// Changes whenever the row is saved: the app downloads the picture
+		// again when it changes, so a replaced cartoon reaches players.
+		sheetVersion: String(row.MODIFIEDTIME || ''),
 		aspectRatio: Number(row.AspectRatio || 1),
 		published: asBool(row.Published),
 		finalAnswer: row.FinalAnswer || '',

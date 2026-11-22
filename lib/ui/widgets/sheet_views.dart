@@ -21,7 +21,7 @@ class LoadedSheet {
 final _cache = <String, Future<LoadedSheet>>{};
 
 /// Loads [puzzle]'s sheet and finds its cartoon, remembered per sheet.
-Future<LoadedSheet> loadSheet(Puzzle puzzle) => _cache.putIfAbsent(puzzle.id, () async {
+Future<LoadedSheet> loadSheet(Puzzle puzzle) => _cache.putIfAbsent('${puzzle.id} ${puzzle.image.path}', () async {
   final bytes = puzzle.image.isAsset
       ? (await rootBundle.load(puzzle.image.path)).buffer.asUint8List()
       : await File(puzzle.image.path).readAsBytes();

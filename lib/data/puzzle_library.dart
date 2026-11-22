@@ -283,7 +283,11 @@ class PuzzleLibrary extends ChangeNotifier {
   Future<Puzzle?> _withImage(Puzzle puzzle, String key) async {
     // Cartoons uploaded per slot are all called cartoon.png on the server, so
     // each is kept under its puzzle's id; the -cartoon name marks it as one.
-    final name = key.startsWith('puzzles/') ? '${puzzle.id}-cartoon.${key.split('.').last}' : key.split('/').last;
+    // An edit can replace a slot's cartoon under the same key: its version, in
+    // the name, makes that a new file to fetch. (Other keys are never reused.)
+    final name = key.startsWith('puzzles/')
+        ? '${puzzle.id}${_versionTag(puzzle)}-cartoon.${key.split('.').last}'
+        : key.split('/').last;
     final file = File('${_store.folder('sheets').path}/$name');
     if (!(file.existsSync() && file.lengthSync() > 0)) {
       final ok = await _api.download(JumbleFunction.data, 'puzzles/sheet', {'key': key}, file);
@@ -297,10 +301,18 @@ class PuzzleLibrary extends ChangeNotifier {
   Future<File?> wordlessImage(Puzzle puzzle) async {
     final key = puzzle.wordlessKey;
     if (key.isEmpty) return null;
-    final file = File('${_store.folder('sheets').path}/${puzzle.id}-wordless.png');
+    final file = File('${_store.folder('sheets').path}/${puzzle.id}${_versionTag(puzzle)}-wordless.png');
     if (file.existsSync() && file.lengthSync() > 0) return file;
     final ok = await _api.download(JumbleFunction.data, 'puzzles/sheet', {'key': key}, file);
     return ok ? file : null;
+  }
+
+  /// "-k3x9" from the puzzle's [Puzzle.sheetVersion], or '' when it has none.
+  static String _versionTag(Puzzle puzzle) {
+    final v = puzzle.sheetVersion.trim();
+    if (v.isEmpty) return '';
+    final hash = v.codeUnits.fold<int>(7, (h, c) => (h * 31 + c) & 0x7fffffff);
+    return '-${hash.toRadixString(36)}';
   }
 
   /// Newest first: by date, and on one date the later slot first.
