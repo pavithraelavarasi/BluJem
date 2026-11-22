@@ -289,6 +289,38 @@ class AdminService {
     );
   }
 
+  /// Changes [puzzle] in place — words, answers, caption and, when given, its
+  /// pictures — through the same save as Edit on the upload page: same
+  /// puzzle and opening time, results kept, no second notification.
+  /// Whether it is still published (it is, with every answer in).
+  Future<({bool published})> editPuzzle(
+    Puzzle puzzle, {
+    required String text,
+    required List<String> answers,
+    required String finalAnswer,
+    required String clue,
+    required String explanation,
+    Uint8List? cartoon,
+    Uint8List? wordless,
+  }) async {
+    final reply = await _api.post(
+      JumbleFunction.data,
+      'puzzles/upload',
+      body: {
+        'date': puzzle.publishDate,
+        'slot': puzzle.slot,
+        'text': text,
+        'answers': {'words': answers, 'final': finalAnswer},
+        'clue': clue,
+        'explanation': explanation,
+        if (cartoon != null) 'cartoonBase64': base64Encode(cartoon),
+        if (wordless != null) 'wordlessBase64': base64Encode(wordless),
+      },
+      timeout: const Duration(seconds: 90),
+    );
+    return (published: reply['published'] == true);
+  }
+
   /// Takes [puzzle] down: players stop seeing it and its date is free again.
   /// The row is kept, unpublished, exactly as it was.
   Future<void> unpublish(Puzzle puzzle) => _setPublished(puzzle, false);

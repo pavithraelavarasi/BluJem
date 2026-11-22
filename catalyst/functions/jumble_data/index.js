@@ -176,7 +176,7 @@ async function uploadPuzzle(app, caller, body, res) {
 	if (caller.role !== 'admin') return sendJson(res, 403, { error: 'Only an admin can upload puzzles.' });
 	const prepared = prepareUpload(body);
 	if (prepared.problems.length) {
-		return sendJson(res, 400, { problems: prepared.problems, parsed: prepared.parsed || null, goesLive: '' });
+		return sendJson(res, 400, { problems: prepared.problems, error: prepared.problems.join('\n'), parsed: prepared.parsed || null, goesLive: '' });
 	}
 	const { values } = prepared;
 	const existing = (await zcql(app,

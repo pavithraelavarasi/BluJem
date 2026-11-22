@@ -17,6 +17,7 @@ import '../../models/box_rect.dart';
 import '../../models/puzzle.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'edit_puzzle_screen.dart';
 import 'puzzle_preview_screen.dart';
 import 'type_letters_screen.dart';
 
@@ -148,6 +149,15 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   /// Takes [puzzle] down; it moves to Unpublished, ready to go back.
+  /// Today's and later puzzles, cartoon ones, can be edited.
+  bool _editable(Puzzle puzzle) =>
+      canEditPuzzle(puzzle) && puzzle.publishDate.compareTo(indiaDate(DateTime.now())) >= 0;
+
+  Future<void> _edit(Puzzle puzzle) async {
+    await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => EditPuzzleScreen(puzzle: puzzle)));
+    if (mounted) setState(() {});
+  }
+
   Future<void> _takeDown(Puzzle puzzle) async {
     final library = context.read<PuzzleLibrary>();
     final day = monthDay(DateTime.parse(puzzle.publishDate));
@@ -292,7 +302,12 @@ class _AdminScreenState extends State<AdminScreen> {
                   child: Text('Published', style: t.titleMedium),
                 ),
                 for (final puzzle in library.published.take(14))
-                  _PuzzleTile(puzzle: puzzle, action: 'Unpublish', onAction: busy ? null : () => _takeDown(puzzle)),
+                  _PuzzleTile(
+                    puzzle: puzzle,
+                    action: 'Unpublish',
+                    onAction: busy ? null : () => _takeDown(puzzle),
+                    onEdit: busy || !_editable(puzzle) ? null : () => _edit(puzzle),
+                  ),
               ],
               if (library.takenDown.isNotEmpty) ...[
                 Padding(
@@ -336,11 +351,14 @@ class _AdminScreenState extends State<AdminScreen> {
 /// A puzzle players get, or got: its day and answer, with [action] beside it.
 /// A tap opens it to look at, answers and all.
 class _PuzzleTile extends StatelessWidget {
-  const _PuzzleTile({required this.puzzle, required this.action, this.onAction});
+  const _PuzzleTile({required this.puzzle, required this.action, this.onAction, this.onEdit});
 
   final Puzzle puzzle;
   final String action;
   final VoidCallback? onAction;
+
+  /// Opens it to edit; null when it cannot be edited.
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -354,7 +372,13 @@ class _PuzzleTile extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
     ),
     isThreeLine: true,
-    trailing: OutlinedButton(onPressed: onAction, child: Text(action)),
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (onEdit != null) IconButton(onPressed: onEdit, icon: const Icon(Icons.edit_rounded), tooltip: 'Edit'),
+        OutlinedButton(onPressed: onAction, child: Text(action)),
+      ],
+    ),
   );
 }
 
