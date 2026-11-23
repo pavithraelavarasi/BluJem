@@ -46,6 +46,8 @@ function uploadPage() {
 	td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 	.hidden { display: none; }
 	pre { background: var(--bg); padding: 10px; border-radius: 8px; overflow-x: auto; }
+	.preview { margin: 10px 0 4px; }
+	.preview img { display: block; width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
 </style>
 </head>
 <body>
@@ -80,8 +82,10 @@ function uploadPage() {
 		</div>
 		<label for="cartoon">Cartoon <span class="hint">— the coloured cartoon only (PNG or JPEG). Leave empty to keep the one already uploaded.</span></label>
 		<input id="cartoon" type="file" accept="image/png,image/jpeg">
+		<figure class="preview hidden" id="cartoonPreviewBox"><img id="cartoonPreview" alt="Cartoon to upload"><figcaption class="hint">This cartoon will be uploaded.</figcaption></figure>
 		<label for="wordless">Wordless cartoon <span class="hint">— the same cartoon with no speech bubbles or caption, for the picture players share. Optional; leave empty to keep the one already uploaded.</span></label>
 		<input id="wordless" type="file" accept="image/png,image/jpeg">
+		<figure class="preview hidden" id="wordlessPreviewBox"><img id="wordlessPreview" alt="Wordless cartoon to upload"><figcaption class="hint">This wordless cartoon will be uploaded.</figcaption></figure>
 		<label for="text">Puzzle text <span class="hint">— one jumbled word per line, circled letters in CAPITALS; a blank line; then the answer boxes □ (or _), punctuation as printed. A new line in the boxes is where the answer wraps.</span></label>
 		<textarea id="text" spellcheck="false" placeholder="aDRra&#10;tuYpT&#10;hcNRcu&#10;cRaoCD&#10;&#10;□□□-□□□-&#10;□□□"></textarea>
 		<button class="plain" id="checkBtn">Check</button>
@@ -92,8 +96,6 @@ function uploadPage() {
 			<div class="words" id="wordAnswers"></div>
 			<label for="final">Final answer <span class="hint">— letters in the boxes' order; punctuation comes from the boxes</span></label>
 			<input id="final" style="text-transform:uppercase">
-			<label for="clue">Caption / clue <span class="hint">(optional)</span></label><input id="clue">
-			<label for="explanation">Why it's funny <span class="hint">(optional, shown after solving)</span></label><input id="explanation">
 			<button class="primary" id="uploadBtn">Upload</button>
 		</div>
 		<div class="msg" id="uploadMsg"></div>
@@ -207,7 +209,6 @@ function uploadPage() {
 			const p = reply.parsed;
 			show($('checkMsg'), 'Looks right: ' + p.words.length + ' words, ' + p.pattern.boxes + ' answer boxes (' + p.pattern.groups.join('-') + '). Goes live ' + reply.goesLive + '.', true);
 			$('wordAnswers').innerHTML = p.words.map((w, i) => '<label>Word ' + (i + 1) + ' <span class="hint">' + w.letters + '</span></label><input data-word="' + i + '" maxlength="' + w.letters.length + '">').join('');
-			if (p.clue && !$('clue').value) $('clue').value = p.clue;
 			$('answers').classList.remove('hidden');
 			return true;
 		} catch (e) { show($('checkMsg'), e.message, false); return false; }
@@ -255,11 +256,11 @@ function uploadPage() {
 		$('slot').value = p.slot;
 		$('date').disabled = true;
 		$('slot').disabled = true;
-		$('cartoon').value = '';
-		$('wordless').value = '';
+		for (const name of ['cartoon', 'wordless']) {
+			$(name).value = '';
+			previewFile($(name), $(name + 'Preview'), $(name + 'PreviewBox'));
+		}
 		$('text').value = puzzleTextOf(p);
-		$('clue').value = p.finalClue || '';
-		$('explanation').value = p.finalExplanation || '';
 		$('uploadMsg').textContent = '';
 		$('formTitle').textContent = 'Edit puzzle';
 		$('editingText').textContent = 'Editing ' + p.publishDate + ' · ' + (SLOT_NAMES[p.slot] || p.slot) + (p.published ? ' (already published)' : '') + '. Change anything, then tap Upload: it is saved in place, players keep their results and get no second notification. Choose a picture only to replace it.';
@@ -273,8 +274,6 @@ function uploadPage() {
 		try { words = JSON.parse(p.words || '[]'); } catch (e) {}
 		document.querySelectorAll('[data-word]').forEach((input, i) => { input.value = (words[i] && words[i].answer) || ''; });
 		$('final').value = String(p.finalAnswer || '').replace(/[^A-Za-z]+/g, ' ').trim();
-		$('clue').value = p.finalClue || '';
-		$('explanation').value = p.finalExplanation || '';
 	}
 
 	function endEdit() {
@@ -285,12 +284,33 @@ function uploadPage() {
 		$('editing').classList.add('hidden');
 	}
 
-	$('cancelEdit').onclick = () => {
+	$('cancelEdit').onclick = () => { clearForm(); $('uploadMsg').textContent = ''; };
+
+	// Shows the picture just chosen, large enough to read, before it is sent.
+	function previewFile(input, img, box) {
+		if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+		const file = input.files[0];
+		if (!file) { img.removeAttribute('src'); box.classList.add('hidden'); return; }
+		img.src = URL.createObjectURL(file);
+		box.classList.remove('hidden');
+	}
+	$('cartoon').onchange = () => previewFile($('cartoon'), $('cartoonPreview'), $('cartoonPreviewBox'));
+	$('wordless').onchange = () => previewFile($('wordless'), $('wordlessPreview'), $('wordlessPreviewBox'));
+
+	// An empty form, ready for the next puzzle.
+	function clearForm() {
 		endEdit();
+		$('date').value = '';
+		fillSlots();
 		$('text').value = '';
-		$('answers').classList.add('hidden');
+		$('final').value = '';
+		$('wordAnswers').innerHTML = '';
 		$('checkMsg').textContent = '';
-	};
+		for (const name of ['cartoon', 'wordless']) {
+			$(name).value = '';
+			previewFile($(name), $(name + 'Preview'), $(name + 'PreviewBox'));
+		}
+	}
 
 	function readFile(file) {
 		return new Promise((resolve, reject) => {
@@ -311,16 +331,14 @@ function uploadPage() {
 			const body = Object.assign(form(), {
 				cartoonBase64: file ? await readFile(file) : '',
 				wordlessBase64: wordless ? await readFile(wordless) : '',
-				answers: words.some(Boolean) || $('final').value.trim() ? { words, final: $('final').value.trim() } : null,
-				clue: $('clue').value.trim(),
-				explanation: $('explanation').value.trim()
+				answers: words.some(Boolean) || $('final').value.trim() ? { words, final: $('final').value.trim() } : null
 			});
 			show($('uploadMsg'), 'Uploading…', true);
 			const reply = await call(DATA + 'puzzles/upload', body);
 			if (reply.problems && reply.problems.length) { show($('uploadMsg'), reply.problems.join('\\n'), false); return; }
 			show($('uploadMsg'), (reply.published ? 'Published. ' : 'Saved. ') + 'Goes live ' + reply.goesLive + '.' + (reply.notified && reply.notified.sent ? ' Players have been notified.' : '') + (reply.warnings && reply.warnings.length ? '\\n' + reply.warnings.join('\\n') : ''), true);
 			if (editing && !reply.published) show($('uploadMsg'), 'Saved, but NOT published: fill in every answer and the final answer, then Upload again.', false);
-			else endEdit();
+			else { clearForm(); $('form').scrollIntoView({ behavior: 'smooth' }); }
 			loadList();
 		} catch (e) { show($('uploadMsg'), e.message, false); }
 		finally { btn.disabled = false; }

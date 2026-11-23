@@ -210,6 +210,7 @@ async function uploadPuzzle(app, caller, body, res) {
 
 	const row = { ...values, SheetKey: sheetKey };
 	if (current && !body.explanation) row.FinalExplanation = current.FinalExplanation || '';
+	if (current && !body.clue) row.FinalClue = current.FinalClue || row.FinalClue;
 	const table = app.datastore().table(PUZZLES);
 	const saved = current
 		? await table.updateRow({ ROWID: current.ROWID, PuzzleId: current.PuzzleId, ...row })
