@@ -10,5 +10,11 @@
     ],
     "ignore": [],
     "source": "functions"
-  }
+  },
+  "slate": [
+    {
+      "name": "blujem-tech",
+      "source": "/Users/pavi-22139/WFH/BluJem/catalyst/techstack"
+    }
+  ]
 }

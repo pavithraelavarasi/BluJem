@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BluJem Tech Stack</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: gem-blue header band, then layer sections (phone → cloud → outside services → shipping), each a grid of tiles */
+:root {
+  --bg: #F3F6FC;
+  --surface: #FFFFFF;
+  --ink: #142038;
+  --ink-soft: #4F5D78;
+  --rule: #DCE3F0;
+  --gem: #1F5FE0;
+  --gem-soft: #E3ECFE;
+  --gold: #E9A800;
+  --band: #0F2F78;
+  --band-ink: #FFFFFF;
+  --f-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1222; --surface: #141C31; --ink: #E7ECF7; --ink-soft: #9BA8C4; --rule: #26314C;
+    --gem: #6E9BFF; --gem-soft: #1B2A4F; --gold: #FFC72C; --band: #0A1A44; --band-ink: #FFFFFF;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1222; --surface: #141C31; --ink: #E7ECF7; --ink-soft: #9BA8C4; --rule: #26314C;
+  --gem: #6E9BFF; --gem-soft: #1B2A4F; --gold: #FFC72C; --band: #0A1A44; --band-ink: #FFFFFF;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { background: var(--band); color: var(--band-ink); }
+header .wrap { padding-block: 40px 36px; display: grid; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.gem { width: 40px; height: 40px; flex: none; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 6vw, 46px); margin: 0; line-height: 1.05; text-wrap: balance; }
+h1 span { color: var(--gold); }
+.lede { margin: 0; max-width: 62ch; opacity: .88; font-size: 16px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.fact { font-family: var(--f-mono); font-size: 12.5px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); }
+main .wrap { padding-block: 28px 56px; display: grid; gap: 40px; }
+section { display: grid; gap: 14px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 2px solid var(--rule); padding-bottom: 8px; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 24px; margin: 0; }
+.sec-head p { margin: 0; color: var(--ink-soft); }
+.layer { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--gem); background: var(--gem-soft); padding: 3px 8px; border-radius: 6px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.tile h3 { margin: 0; font-size: 15.5px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.tile h3 code { font-family: var(--f-mono); font-size: 11.5px; font-weight: 400; color: var(--ink-soft); }
+.tile p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+.tile.key { border-color: var(--gem); box-shadow: inset 4px 0 0 var(--gem); }
+.flow-box { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; overflow-x: auto; }
+.flow { display: flex; align-items: stretch; gap: 8px; min-width: 720px; }
+.step { flex: 1; border-radius: 10px; background: var(--gem-soft); padding: 10px 12px; display: grid; gap: 2px; }
+.step b { font-size: 13.5px; }
+.step span { font-size: 12.5px; color: var(--ink-soft); }
+.arrow { align-self: center; color: var(--gem); font-weight: 700; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); font-weight: 600; }
+tr:last-child td { border-bottom: none; }
+td code { font-family: var(--f-mono); font-size: 13px; color: var(--gem); }
+footer { color: var(--ink-soft); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <svg class="gem" viewBox="0 0 40 40" aria-hidden="true"><path d="M12 6h16l8 10-16 19L4 16z" fill="#3D7BFF"/><path d="M12 6l8 10 8-10M4 16h32M20 16v19" stroke="#BFD3FF" stroke-width="1.6" fill="none"/></svg>
+      <h1>Blu<span>Jem</span> Tech Stack</h1>
+    </div>
+    <p class="lede">Everything BluJem is built with: the phone app, the Zoho Catalyst back end, the outside services it talks to, and how new versions reach players.</p>
+    <div class="facts">
+      <span class="fact">v1.35.0 · build 36</span>
+      <span class="fact">Android + iOS from one codebase</span>
+      <span class="fact">6 Catalyst functions</span>
+      <span class="fact">159 app tests · 55 server tests</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <section>
+      <div class="sec-head"><span class="layer">How a puzzle flows</span><h2>From the admin to the player</h2></div>
+      <div class="flow-box">
+        <div class="flow">
+          <div class="step"><b>Admin uploads</b><span>Upload web page or ChatGPT GPT: cartoon, wordless cartoon, letters</span></div>
+          <div class="arrow">→</div>
+          <div class="step"><b>jumble_data</b><span>Checks the letters, saves the row, stores pictures</span></div>
+          <div class="arrow">→</div>
+          <div class="step"><b>Data Store + Stratus</b><span>Puzzle row and cartoon files</span></div>
+          <div class="arrow">→</div>
+          <div class="step"><b>Cron 9 · 15 · 21</b><span>Opens the slot and sends push through Firebase</span></div>
+          <div class="arrow">→</div>
+          <div class="step"><b>Flutter app</b><span>Syncs, draws the word page, player solves and shares</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head"><span class="layer">Phone</span><h2>The app</h2><p>One Flutter codebase builds both apps.</p></div>
+      <div class="grid">
+        <div class="tile key"><h3>Flutter <code>Dart 3</code></h3><p>The whole app: game board, start screen, history, leaderboard, admin screens.</p></div>
+        <div class="tile"><h3>Provider <code>provider</code></h3><p>App state: puzzle library, records, scores, sign-in.</p></div>
+        <div class="tile"><h3>Catalyst Flutter SDK <code>zcatalyst_sdk</code></h3><p>Connects the app to the Zoho Catalyst project.</p></div>
+        <div class="tile"><h3>HTTP <code>http</code></h3><p>Calls to the Catalyst functions for puzzles, scores and uploads.</p></div>
+        <div class="tile"><h3>Local storage <code>shared_preferences · path_provider</code></h3><p>Keeps progress, streaks and downloaded cartoons on the phone.</p></div>
+        <div class="tile"><h3>Image <code>image</code></h3><p>Draws the word page, finds the caption, shrinks uploads, builds the share card.</p></div>
+        <div class="tile"><h3>Shake to reshuffle <code>sensors_plus</code></h3><p>Reads the phone's motion so a shake re-scrambles the words.</p></div>
+        <div class="tile"><h3>Sounds <code>audioplayers</code></h3><p>Taps, correct-word and win sounds.</p></div>
+        <div class="tile"><h3>Push notifications <code>firebase_messaging · flutter_local_notifications</code></h3><p>New-puzzle alerts and local reminders.</p></div>
+        <div class="tile"><h3>Share card <code>share_plus · qr</code></h3><p>Shares the win picture with a QR code to download the app.</p></div>
+        <div class="tile"><h3>No screenshots in game <code>no_screenshot</code></h3><p>Blocks screenshots while a puzzle is open.</p></div>
+        <div class="tile"><h3>Admin pictures <code>image_picker</code></h3><p>Picks the cartoon and wordless cartoon when an admin adds or edits a puzzle.</p></div>
+        <div class="tile"><h3>Updates <code>package_info_plus · crypto</code></h3><p>Checks the app version and verifies the Android update file (SHA-256) before installing.</p></div>
+        <div class="tile"><h3>Dates <code>intl</code></h3><p>Day names, times and the 9 AM / 3 PM / 9 PM slots.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head"><span class="layer">Cloud</span><h2>Zoho Catalyst back end</h2><p>Node.js 20 serverless functions, Development environment.</p></div>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Function</th><th>Type</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>jumble_data</code></td><td>Advanced I/O</td><td>The main API: puzzles, uploads, editing, scores, leaderboard, pictures, the upload web page and the notification timer.</td></tr>
+            <tr><td><code>jumble_auth</code></td><td>Advanced I/O</td><td>Sign-in: email and password, plus Google and Zoho sign-in for the upload page.</td></tr>
+            <tr><td><code>blujem_daily</code></td><td>Advanced I/O</td><td>Daily puzzle pipeline and the Android app-update file and notes.</td></tr>
+            <tr><td><code>blujem_daily_job</code></td><td>Job</td><td>The slow part of the pipeline: asks the Zia agent to read a puzzle and checks the result.</td></tr>
+            <tr><td><code>jumble_ai</code></td><td>Advanced I/O</td><td>AI helpers for building puzzles.</td></tr>
+            <tr><td><code>jumble_layout</code></td><td>Job</td><td>Asks the Zia layout agent where the words and boxes sit on an old full puzzle sheet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid">
+        <div class="tile key"><h3>Data Store <code>ZCQL</code></h3><p>Tables for Users and Puzzles: words, answers, slot, publish time.</p></div>
+        <div class="tile key"><h3>Stratus <code>bucket: blujem</code></h3><p>Cartoon and wordless cartoon pictures, plus the Android update file and its notes.</p></div>
+        <div class="tile"><h3>Cron (Job Scheduling) <code>6 · 9 · 15 · 21 IST</code></h3><p>Opens each puzzle on time and sends the push notification.</p></div>
+        <div class="tile"><h3>Authentication <code>hosted login</code></h3><p>Google and Zoho sign-in for admins on the upload page.</p></div>
+        <div class="tile"><h3>Zia AI agents</h3><p>Read puzzle images and find where the words and boxes are.</p></div>
+        <div class="tile"><h3>Cache</h3><p>Holds slow job results until the app collects them.</p></div>
+        <div class="tile"><h3>Environment variables</h3><p>Secrets kept out of the code: token key, cron key, Firebase key.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head"><span class="layer">Outside services</span><h2>What else BluJem uses</h2></div>
+      <div class="grid">
+        <div class="tile"><h3>Firebase Cloud Messaging</h3><p>Delivers push notifications to Android and iOS phones.</p></div>
+        <div class="tile"><h3>ChatGPT custom GPT</h3><p>A second way for the admin to upload a puzzle, through a protected upload route.</p></div>
+        <div class="tile"><h3>Anthropic Claude SDK</h3><p>Installed in jumble_ai for AI puzzle help.</p></div>
+        <div class="tile"><h3>TinyURL <code>tinyurl.com/blujem</code></h3><p>The short download link in the share message.</p></div>
+        <div class="tile"><h3>GitHub</h3><p>Source code; every change is committed and pushed.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head"><span class="layer">Shipping</span><h2>How players get new versions</h2></div>
+      <div class="grid">
+        <div class="tile key"><h3>iOS · TestFlight</h3><p>Built with Xcode, uploaded to App Store Connect, testers install from TestFlight.</p></div>
+        <div class="tile key"><h3>Android · in-app update</h3><p>Signed APK built with Gradle, stored in Stratus; the app offers it, checks it, then installs.</p></div>
+        <div class="tile"><h3>Tests</h3><p>Flutter tests for the app, Node's built-in test runner for the server.</p></div>
+        <div class="tile"><h3>Catalyst CLI</h3><p><code>catalyst deploy</code> sends the functions to the cloud.</p></div>
+      </div>
+    </section>
+
+    <footer>Taken from the BluJem code: pubspec.yaml, the Catalyst function configs and package files.</footer>
+  </div>
+</main>
+</body>
+</html>
