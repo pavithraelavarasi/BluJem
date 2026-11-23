@@ -10,30 +10,34 @@
 <style>
 /* Layout: gem-blue header band, then layer sections (phone → cloud → outside services → shipping), each a grid of tiles */
 :root {
-  --bg: #F3F6FC;
-  --surface: #FFFFFF;
-  --ink: #142038;
-  --ink-soft: #4F5D78;
-  --rule: #DCE3F0;
-  --gem: #1F5FE0;
-  --gem-soft: #E3ECFE;
-  --gold: #E9A800;
-  --band: #0F2F78;
-  --band-ink: #FFFFFF;
+  --bg: #F1E9D8;
+  --surface: #FBF7EE;
+  --ink: #18264A;
+  --ink-soft: #5A6178;
+  --rule: #DDD1B8;
+  --gem: #1F3A6E;
+  --gem-soft: #E6DCC6;
+  --gold: #E8C27A;
+  --band: #16264A;
+  --band-ink: #F6EFE0;
+  --done: #3E7B4F;
+  --now: #B5761B;
   --f-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
   --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0C1222; --surface: #141C31; --ink: #E7ECF7; --ink-soft: #9BA8C4; --rule: #26314C;
-    --gem: #6E9BFF; --gem-soft: #1B2A4F; --gold: #FFC72C; --band: #0A1A44; --band-ink: #FFFFFF;
+    --bg: #0F1830; --surface: #17223F; --ink: #F1E9D8; --ink-soft: #B9B09C; --rule: #2A3658;
+    --gem: #E8C27A; --gem-soft: #23305A; --gold: #E8C27A; --band: #0A1226; --band-ink: #F1E9D8;
+    --done: #7FC08F; --now: #E9B061;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0C1222; --surface: #141C31; --ink: #E7ECF7; --ink-soft: #9BA8C4; --rule: #26314C;
-  --gem: #6E9BFF; --gem-soft: #1B2A4F; --gold: #FFC72C; --band: #0A1A44; --band-ink: #FFFFFF;
+  --bg: #0F1830; --surface: #17223F; --ink: #F1E9D8; --ink-soft: #B9B09C; --rule: #2A3658;
+  --gem: #E8C27A; --gem-soft: #23305A; --gold: #E8C27A; --band: #0A1226; --band-ink: #F1E9D8;
+  --done: #7FC08F; --now: #E9B061;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -72,6 +76,19 @@ th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--ru
 th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); font-weight: 600; }
 tr:last-child td { border-bottom: none; }
 td code { font-family: var(--f-mono); font-size: 13px; color: var(--gem); }
+.road { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.col { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.col-head { display: flex; align-items: center; gap: 8px; }
+.col-head h3 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 18px; }
+.col-head small { margin-left: auto; color: var(--ink-soft); font-size: 12.5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--ink-soft); }
+.col.done .dot { background: var(--done); }
+.col.now .dot { background: var(--now); }
+.col.next .dot { background: var(--gem); }
+.col ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.col li { font-size: 14px; padding-left: 14px; position: relative; }
+.col li::before { content: ""; position: absolute; left: 0; top: .6em; width: 6px; height: 2px; background: var(--rule); }
+.col li span { display: block; color: var(--ink-soft); font-size: 12.5px; }
 footer { color: var(--ink-soft); font-size: 13px; }
 </style>
 </head>
@@ -80,10 +97,10 @@ footer { color: var(--ink-soft); font-size: 13px; }
 <header>
   <div class="wrap">
     <div class="brand">
-      <svg class="gem" viewBox="0 0 40 40" aria-hidden="true"><path d="M12 6h16l8 10-16 19L4 16z" fill="#3D7BFF"/><path d="M12 6l8 10 8-10M4 16h32M20 16v19" stroke="#BFD3FF" stroke-width="1.6" fill="none"/></svg>
+      <svg class="gem" viewBox="0 0 40 40" aria-hidden="true"><path d="M12 6h16l8 10-16 19L4 16z" fill="#E8C27A"/><path d="M12 6l8 10 8-10M4 16h32M20 16v19" stroke="#FFF4DC" stroke-width="1.6" fill="none"/></svg>
       <h1>Blu<span>Jem</span> Tech Stack</h1>
     </div>
-    <p class="lede">Everything BluJem is built with: the phone app, the Zoho Catalyst back end, the outside services it talks to, and how new versions reach players.</p>
+    <p class="lede">Everything BluJem is built with: the phone app, the Zoho Catalyst back end, the outside services it talks to, how new versions reach players, and <a href="#roadmap" style="color:var(--gold)">where it is going next</a>.</p>
     <div class="facts">
       <span class="fact">v1.35.0 · build 36</span>
       <span class="fact">Android + iOS from one codebase</span>
@@ -180,7 +197,56 @@ footer { color: var(--ink-soft); font-size: 13px; }
       </div>
     </section>
 
-    <footer>Taken from the BluJem code: pubspec.yaml, the Catalyst function configs and package files.</footer>
+    <section id="roadmap">
+      <div class="sec-head"><span class="layer">Roadmap</span><h2>Where BluJem is going</h2><p>From the team's to-do list, 23 Nov 2026. No dates promised.</p></div>
+      <div class="road">
+        <div class="col done">
+          <div class="col-head"><span class="dot"></span><h3>Done</h3><small>v1.35.0</small></div>
+          <ul>
+            <li>3 puzzles every day, Sunday too<span>9 AM, 3 PM and 9 PM</span></li>
+            <li>New fun start screen</li>
+            <li>New share picture<span>Wordless cartoon, QR code, short link</span></li>
+            <li>Edit a puzzle after publishing</li>
+            <li>Google and Zoho sign-in on the upload page</li>
+            <li>Upload puzzles for any future date</li>
+          </ul>
+        </div>
+        <div class="col now">
+          <div class="col-head"><span class="dot"></span><h3>Now</h3><small>fixing and testing</small></div>
+          <ul>
+            <li>Night puzzle not saved as completed</li>
+            <li>iPhone push notifications<span>Next iOS build needs the push permission</span></li>
+            <li>Android update blocked by Play Protect</li>
+            <li>Checking built features on real phones<span>Swipe, drag-drop, shake, leaderboard, scoring</span></li>
+          </ul>
+        </div>
+        <div class="col next">
+          <div class="col-head"><span class="dot"></span><h3>Next</h3></div>
+          <ul>
+            <li>Admin work only on the web page<span>The app is just for playing</span></li>
+            <li>Play-test future puzzles<span>No timer, no points, not on the leaderboard</span></li>
+            <li>Clearer upload words<span>"Create a Puzzle", Publish vs Schedule</span></li>
+            <li>Puzzles open at each player's local time</li>
+            <li>Spare puzzles kept ready for emergencies</li>
+            <li>Alert when puzzles go live</li>
+            <li>10-second penalty for each shuffle</li>
+          </ul>
+        </div>
+        <div class="col later">
+          <div class="col-head"><span class="dot"></span><h3>Later</h3></div>
+          <ul>
+            <li>Every past puzzle from launch day</li>
+            <li>Player profiles<span>Name, about me, hobbies</span></li>
+            <li>Apptics analytics<span>See where players get stuck</span></li>
+            <li>App Store and Play Store listing</li>
+            <li>Upload from a ChatGPT GPT</li>
+            <li>AI-made puzzles<span>4 to 7 letter words, no copyright issues</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer>Tech stack taken from the BluJem code (pubspec.yaml and the Catalyst function files). Roadmap taken from the team's to-do list.</footer>
   </div>
 </main>
 </body>
