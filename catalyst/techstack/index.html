@@ -22,23 +22,10 @@
   --band-ink: #F6EFE0;
   --done: #3E7B4F;
   --now: #B5761B;
+  color-scheme: light;
   --f-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
   --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0F1830; --surface: #17223F; --ink: #F1E9D8; --ink-soft: #B9B09C; --rule: #2A3658;
-    --gem: #E8C27A; --gem-soft: #23305A; --gold: #E8C27A; --band: #0A1226; --band-ink: #F1E9D8;
-    --done: #7FC08F; --now: #E9B061;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0F1830; --surface: #17223F; --ink: #F1E9D8; --ink-soft: #B9B09C; --rule: #2A3658;
-  --gem: #E8C27A; --gem-soft: #23305A; --gold: #E8C27A; --band: #0A1226; --band-ink: #F1E9D8;
-  --done: #7FC08F; --now: #E9B061;
-  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
