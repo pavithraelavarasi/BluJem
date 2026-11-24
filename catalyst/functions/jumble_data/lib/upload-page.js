@@ -46,6 +46,14 @@ function uploadPage() {
 	td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 	.hidden { display: none; }
 	pre { background: var(--bg); padding: 10px; border-radius: 8px; overflow-x: auto; }
+	.wordhead { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; }
+	.wordhead label { margin: 0; }
+	.mix { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.15em; font-size: 1.1rem; font-weight: 600; color: var(--ink); }
+	button.shuffle { margin: 0; padding: 0; width: 30px; height: 30px; flex: none; border-radius: 7px; border: none; background: #e0123f; color: #fff; font-size: 17px; line-height: 30px; }
+	button.shuffle:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+	.tiles { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; align-items: center; padding: 6px; border: 1px dashed var(--line); border-radius: 8px; margin-bottom: 6px; }
+	.tile { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--accent); font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: 1.05rem; }
+	.tile.empty { border-style: dashed; border-color: var(--line); color: var(--soft); }
 	.preview { margin: 10px 0 4px; }
 	.preview img { display: block; width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
 </style>
@@ -94,6 +102,8 @@ function uploadPage() {
 		<div id="answers" class="hidden">
 			<h2 style="margin-top:24px">Answers <span class="hint">— kept on the server; players never receive them before solving. Optional now: without them the puzzle is saved but not published.</span></h2>
 			<div class="words" id="wordAnswers"></div>
+			<div class="wordhead"><label>Circled letters <span class="hint">— fill in as the words are solved</span></label><button type="button" class="shuffle" id="shuffleFinal" title="Shuffle the circled letters" aria-label="Shuffle the circled letters">&#x21bb;</button></div>
+			<div class="tiles" id="finalTiles"></div>
 			<label for="final">Final answer <span class="hint">— letters in the boxes' order; punctuation comes from the boxes</span></label>
 			<input id="final" style="text-transform:uppercase">
 			<button class="primary" id="uploadBtn">Upload</button>
@@ -201,6 +211,54 @@ function uploadPage() {
 
 	const form = () => ({ date: $('date').value, slot: $('slot').value, text: $('text').value });
 
+	// ---- Playing it through: shuffle buttons for each word, and the circled
+	// letters gathered from the typed answers, ready for the final answer.
+	let parsedWords = [];
+	let finalOrder = null;
+
+	// [text]'s letters in a new random order (a different one when possible).
+	function shuffled(text) {
+		const letters = [...text];
+		if (new Set(letters).size < 2) return text;
+		let out = text;
+		while (out === text) {
+			for (let i = letters.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[letters[i], letters[j]] = [letters[j], letters[i]];
+			}
+			out = letters.join('');
+		}
+		return out;
+	}
+
+	const sortedLetters = (t) => [...t].sort().join('');
+
+	// The circled letters of each word whose answer uses exactly its letters;
+	// the others stay as empty circles until they are solved.
+	function circledLetters() {
+		return parsedWords.flatMap((w, i) => {
+			const input = $('word' + i);
+			const answer = input ? input.value.trim().toUpperCase() : '';
+			const solved = answer.length === w.letters.length && sortedLetters(answer) === sortedLetters(w.letters);
+			return w.circled.map((c) => (solved ? answer[c] : ''));
+		});
+	}
+
+	function showFinalLetters() {
+		const letters = circledLetters();
+		const filled = letters.filter(Boolean);
+		const shown = finalOrder && sortedLetters(finalOrder) === sortedLetters(filled.join('')) ? [...finalOrder] : letters;
+		$('finalTiles').innerHTML = shown.map((c) => c ? '<span class="tile">' + c + '</span>' : '<span class="tile empty">?</span>').join('');
+	}
+
+	$('shuffleFinal').onclick = () => {
+		const filled = circledLetters().filter(Boolean).join('');
+		if (!filled) return;
+		const empties = circledLetters().length - filled.length;
+		finalOrder = shuffled(finalOrder && sortedLetters(finalOrder) === sortedLetters(filled) ? finalOrder : filled);
+		$('finalTiles').innerHTML = [...finalOrder].map((c) => '<span class="tile">' + c + '</span>').join('') + '<span class="tile empty">?</span>'.repeat(empties);
+	};
+
 	$('checkBtn').onclick = () => check();
 	async function check() {
 		try {
@@ -208,7 +266,12 @@ function uploadPage() {
 			if (reply.problems && reply.problems.length) { show($('checkMsg'), reply.problems.join('\\n'), false); return false; }
 			const p = reply.parsed;
 			show($('checkMsg'), 'Looks right: ' + p.words.length + ' words, ' + p.pattern.boxes + ' answer boxes (' + p.pattern.groups.join('-') + '). Goes live ' + reply.goesLive + '.', true);
-			$('wordAnswers').innerHTML = p.words.map((w, i) => '<label>Word ' + (i + 1) + ' <span class="hint">' + w.letters + '</span></label><input data-word="' + i + '" maxlength="' + w.letters.length + '">').join('');
+			parsedWords = p.words;
+			finalOrder = null;
+			$('wordAnswers').innerHTML = p.words.map((w, i) => '<div class="wordhead"><label for="word' + i + '">Word ' + (i + 1) + ' <span class="hint mix" id="mix' + i + '">' + w.letters + '</span></label><button type="button" class="shuffle" data-shuffle="' + i + '" title="Shuffle these letters" aria-label="Shuffle the letters of word ' + (i + 1) + '">&#x21bb;</button></div><input id="word' + i + '" data-word="' + i + '" maxlength="' + w.letters.length + '">').join('');
+			document.querySelectorAll('[data-shuffle]').forEach((b) => { b.onclick = () => { const el = $('mix' + b.dataset.shuffle); el.textContent = shuffled(el.textContent); }; });
+			document.querySelectorAll('[data-word]').forEach((input) => { input.oninput = () => { finalOrder = null; showFinalLetters(); }; });
+			showFinalLetters();
 			$('answers').classList.remove('hidden');
 			return true;
 		} catch (e) { show($('checkMsg'), e.message, false); return false; }
@@ -273,6 +336,7 @@ function uploadPage() {
 		let words = [];
 		try { words = JSON.parse(p.words || '[]'); } catch (e) {}
 		document.querySelectorAll('[data-word]').forEach((input, i) => { input.value = (words[i] && words[i].answer) || ''; });
+		showFinalLetters();
 		$('final').value = String(p.finalAnswer || '').replace(/[^A-Za-z]+/g, ' ').trim();
 	}
 
@@ -305,6 +369,9 @@ function uploadPage() {
 		$('text').value = '';
 		$('final').value = '';
 		$('wordAnswers').innerHTML = '';
+		parsedWords = [];
+		finalOrder = null;
+		$('finalTiles').innerHTML = '';
 		$('checkMsg').textContent = '';
 		for (const name of ['cartoon', 'wordless']) {
 			$(name).value = '';
