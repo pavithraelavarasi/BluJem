@@ -101,7 +101,7 @@ class GameFeedback extends ChangeNotifier {
       case GameSound.solved:
         HapticFeedback.mediumImpact();
       case GameSound.complete:
-        HapticFeedback.heavyImpact();
+        unawaited(winBuzz());
       default:
         break;
     }
@@ -143,6 +143,24 @@ Future<void> shuffleBuzz() async {
   await HapticFeedback.heavyImpact();
   await Future<void>.delayed(const Duration(milliseconds: 160));
   await HapticFeedback.heavyImpact();
+}
+
+/// The win buzz: three pulses, the last one long — a little celebration in
+/// the hand, stronger than the shuffle's. Android drives the vibrator itself;
+/// iPhone plays three heavy taps.
+Future<void> winBuzz() async {
+  if (!kIsWeb && Platform.isAndroid) {
+    try {
+      await const MethodChannel('blujem/haptics').invokeMethod('win');
+      return;
+    } catch (_) {
+      // Fall through to the system haptics.
+    }
+  }
+  for (var i = 0; i < 3; i++) {
+    if (i > 0) await Future<void>.delayed(const Duration(milliseconds: 140));
+    await HapticFeedback.heavyImpact();
+  }
 }
 
 /// Calls back on a firm shake: past 2.4 g, and once per 1.2 s however long

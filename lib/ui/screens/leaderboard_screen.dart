@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../data/app_refresh.dart';
 import '../../data/profile_service.dart';
 import '../../data/score_repository.dart';
 import '../../models/records.dart';
@@ -21,10 +22,28 @@ class LeaderboardScreenState extends State<LeaderboardScreen> {
   bool _loading = false;
   bool _unavailable = false;
 
+  AppRefresh? _appRefresh;
+
   @override
   void initState() {
     super.initState();
     refresh();
+    // Reload with the rest of the app: on coming back, and every few minutes.
+    try {
+      _appRefresh = context.read<AppRefresh>()..addListener(_onAppRefresh);
+    } on ProviderNotFoundException {
+      // A screen shown on its own (tests) has nothing to listen to.
+    }
+  }
+
+  void _onAppRefresh() {
+    if (mounted && !_loading) refresh();
+  }
+
+  @override
+  void dispose() {
+    _appRefresh?.removeListener(_onAppRefresh);
+    super.dispose();
   }
 
   Future<void> refresh() async {

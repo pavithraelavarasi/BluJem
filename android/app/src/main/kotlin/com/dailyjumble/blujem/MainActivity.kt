@@ -18,16 +18,19 @@ class MainActivity : FlutterActivity() {
         // A real buzz for the shake: Flutter's haptics play the system touch
         // feedback, which many phones keep faint or switched off.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "blujem/haptics").setMethodCallHandler { call, result ->
-            if (call.method != "shuffle") return@setMethodCallHandler result.notImplemented()
+            // Buzz, pause, buzz for a shuffle; three pulses, the last long, for a win.
+            val (timings, amplitudes) = when (call.method) {
+                "shuffle" -> longArrayOf(0, 90, 70, 140) to intArrayOf(0, 255, 0, 255)
+                "win" -> longArrayOf(0, 110, 80, 110, 80, 320) to intArrayOf(0, 255, 0, 255, 0, 255)
+                else -> return@setMethodCallHandler result.notImplemented()
+            }
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
             } else {
                 @Suppress("DEPRECATION") getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             }
-            // Buzz, pause, buzz: a jumble you can feel.
-            val timings = longArrayOf(0, 90, 70, 140)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createWaveform(timings, intArrayOf(0, 255, 0, 255), -1))
+                vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
             } else {
                 @Suppress("DEPRECATION") vibrator.vibrate(timings, -1)
             }

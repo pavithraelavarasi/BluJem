@@ -39,6 +39,12 @@ class RecordsRepository extends ChangeNotifier {
     _write([for (final r in rows.whereType<Map>()) Completion.fromJson(Map<String, dynamic>.from(r))]);
   }
 
+  /// Reads the signed-in player's record from the server again, so a puzzle
+  /// finished on another phone shows as done here too.
+  Future<void> refresh() async {
+    if (_owner != 'guest') await switchAccount(_owner);
+  }
+
   bool finished(String puzzleId) => _runs.any((r) => r.puzzleId == puzzleId);
 
   /// The best run kept for [puzzleId], if it has been finished.

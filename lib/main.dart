@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import 'admin/admin_service.dart';
 import 'data/api_client.dart';
+import 'data/app_refresh.dart';
 import 'data/app_updates.dart';
 import 'data/auth_repository.dart';
 import 'data/hint_service.dart';
@@ -54,6 +55,13 @@ Future<void> main() async {
   unawaited(auth.start());
   // "A new BluJem is out", pushed when the admin publishes and when a timed slot opens.
   unawaited(PuzzleReminders(onPuzzleOut: () => unawaited(library.sync())).start());
+  final refresh = AppRefresh(() {
+    library.onResumed();
+    if (auth.signedIn) {
+      unawaited(records.refresh());
+      unawaited(auth.refreshProfile());
+    }
+  })..start();
 
   runApp(
     MultiProvider(
@@ -63,6 +71,7 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: records),
         ChangeNotifierProvider.value(value: game),
         ChangeNotifierProvider.value(value: feedback),
+        ChangeNotifierProvider.value(value: refresh),
         Provider.value(value: scores),
         Provider.value(value: AdminService(api)),
         Provider.value(value: ProfileService(api)),
@@ -77,3 +86,4 @@ Future<void> main() async {
     }),
   );
 }
+

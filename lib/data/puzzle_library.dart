@@ -161,6 +161,15 @@ class PuzzleLibrary extends ChangeNotifier {
     });
   }
 
+  /// The app is on screen again after time in the background, where phones
+  /// pause the slot timer: catch up at once — a new day, or a 3 PM or 9 PM
+  /// puzzle that opened meanwhile — and set the timer again.
+  void onResumed() {
+    _scheduleNextSlot();
+    notifyListeners();
+    unawaited(sync());
+  }
+
   @override
   void dispose() {
     _nextSlot?.cancel();
