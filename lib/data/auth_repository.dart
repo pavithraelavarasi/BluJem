@@ -191,7 +191,7 @@ class AuthRepository extends ChangeNotifier {
 
   /// The same rule the server applies, so most mistakes never leave the phone.
   static String? usernameProblem(String value) =>
-      _username.hasMatch(value.trim()) ? null : 'Use 3 to 16 letters, numbers or underscores.';
+      _username.hasMatch(value.trim()) ? null : 'Use 3 to 16 letters, numbers or _ only. No spaces, dots or dashes.';
 
   // ------------------------------------------------------------- internals
 

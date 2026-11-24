@@ -18,6 +18,11 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   bool _signUp = true;
   String? _error;
+
+  /// What is wrong with the leaderboard name, shown under that field itself,
+  /// so the message never looks like it is about the password.
+  String? _usernameError;
+  final _usernameFocus = FocusNode();
   final _name = TextEditingController();
   final _username = TextEditingController();
   final _email = TextEditingController();
@@ -29,12 +34,17 @@ class _AuthScreenState extends State<AuthScreen> {
     for (final c in [_name, _username, _email, _password, _confirm]) {
       c.dispose();
     }
+    _usernameFocus.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final auth = context.read<AuthRepository>();
     FocusScope.of(context).unfocus();
+    if (_signUp && _username.text.trim().isNotEmpty) {
+      final problem = AuthRepository.usernameProblem(_username.text);
+      if (problem != null) return _showUsernameError(problem);
+    }
     final error = _signUp
         ? await auth.signUp(
             name: _name.text,
@@ -44,12 +54,26 @@ class _AuthScreenState extends State<AuthScreen> {
             confirm: _confirm.text,
           )
         : await auth.signIn(_email.text, _password.text);
-    if (mounted) setState(() => _error = error);
+    if (!mounted) return;
+    if (_signUp && error != null && error.toLowerCase().contains('username')) {
+      return _showUsernameError(error.replaceAll('username', 'leaderboard name'));
+    }
+    setState(() => _error = error);
+  }
+
+  /// Marks the leaderboard name field and brings it into view.
+  void _showUsernameError(String problem) {
+    setState(() {
+      _usernameError = problem;
+      _error = 'Check your leaderboard name above.';
+    });
+    _usernameFocus.requestFocus();
   }
 
   void _switchTo({required bool signUp}) => setState(() {
     _signUp = signUp;
     _error = null;
+    _usernameError = null;
   });
 
   Future<void> _catalyst() async {
@@ -105,7 +129,9 @@ class _AuthScreenState extends State<AuthScreen> {
                         _username,
                         'Leaderboard name (optional)',
                         Icons.alternate_email_rounded,
-                        helper: '3–16 letters, numbers or _. Shown on the leaderboard.',
+                        helper: '3–16 letters, numbers or _ (no spaces). Shown on the leaderboard.',
+                        error: _usernameError,
+                        focus: _usernameFocus,
                       ),
                     ],
                     _field(
@@ -207,6 +233,8 @@ class _AuthScreenState extends State<AuthScreen> {
     TextInputType? keyboard,
     List<String>? hints,
     String? helper,
+    String? error,
+    FocusNode? focus,
     VoidCallback? onDone,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
@@ -222,19 +250,27 @@ class _AuthScreenState extends State<AuthScreen> {
           )
         : TextField(
             controller: controller,
+            focusNode: focus,
             keyboardType: keyboard,
             autofillHints: hints,
             autocorrect: false,
             textInputAction: onDone == null ? TextInputAction.next : TextInputAction.done,
             onSubmitted: onDone == null ? null : (_) => onDone(),
             onChanged: (_) {
-              if (_error != null) setState(() => _error = null);
+              if (_error != null || (error != null && _usernameError != null)) {
+                setState(() {
+                  _error = null;
+                  if (error != null) _usernameError = null;
+                });
+              }
             },
             decoration: InputDecoration(
               labelText: label,
               prefixIcon: Icon(icon),
               helperText: helper,
               helperMaxLines: 2,
+              errorText: error,
+              errorMaxLines: 2,
             ),
           ),
   );
