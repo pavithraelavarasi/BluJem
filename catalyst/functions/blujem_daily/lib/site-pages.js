@@ -106,7 +106,15 @@ const DOWNLOAD = page('Get BluJem', `
 	<li>Open the downloaded file. If Android asks, allow installing apps from your browser.</li>
 	<li>Tap <strong>Install</strong>, then open BluJem and sign in.</li>
 </ol>
-<p>The app keeps itself up to date after that. Not on iPhone yet.</p>
+<p>The app keeps itself up to date after that.</p>
+
+<h2>On iPhone?</h2>
+<p><a class="button" href="https://testflight.apple.com/join/RsetbfTj">Get BluJem on TestFlight</a></p>
+<ol>
+	<li>Install Apple's free <strong>TestFlight</strong> app if you don't have it.</li>
+	<li>Tap <strong>Get BluJem on TestFlight</strong>, then <strong>Accept</strong> and <strong>Install</strong>.</li>
+	<li>New versions show up in TestFlight: just tap <strong>Update</strong>.</li>
+</ol>
 `);
 
 const PAGES = { home: HOME, privacy: PRIVACY, download: DOWNLOAD };

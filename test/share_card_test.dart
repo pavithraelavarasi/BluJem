@@ -45,6 +45,11 @@ void main() {
     expect(appDownloadUrl, endsWith(appDownloadLink));
   });
 
+  test('a shared message carries both the Android and the iPhone link', () {
+    expect(shareLinks, contains(appDownloadLink));
+    expect(shareLinks, contains('testflight.apple.com/join/'));
+  });
+
   testWidgets('the card draws to a PNG 1080 wide', (tester) async {
     final font = FontLoader('Fredoka')..addFont(rootBundle.load('assets/fonts/Fredoka.ttf'));
     await font.load();

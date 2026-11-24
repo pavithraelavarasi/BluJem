@@ -31,6 +31,13 @@ const appDownloadUrl = 'https://tinyurl.com/blujem';
 /// without the https://.
 const appDownloadLink = 'tinyurl.com/blujem';
 
+/// The public TestFlight invite: iPhone players install BluJem from here.
+const iosTestFlightLink = 'testflight.apple.com/join/RsetbfTj';
+
+/// Both ways to get BluJem, on their own lines, since a friend may be on
+/// either phone.
+const shareLinks = 'Android: $appDownloadLink\niPhone: $iosTestFlightLink';
+
 /// What a "Share your win" card shows.
 class WinCard {
   const WinCard({
@@ -129,7 +136,7 @@ Future<void> shareWin(BuildContext context, GameController game) async {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: '${winMessage(today: today, seconds: seconds)} $appDownloadLink',
+        text: '${winMessage(today: today, seconds: seconds)}\n\n$shareLinks',
         subject: 'I solved BluJem',
         sharePositionOrigin: origin,
       ),
@@ -165,7 +172,7 @@ Future<void> shareApp(BuildContext context, {PlayerStats? stats}) async {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: 'Play BluJem with me — a new BluJem every morning, afternoon and night! $appDownloadLink',
+        text: 'Play BluJem with me — a new BluJem every morning, afternoon and night!\n\n$shareLinks',
         subject: 'Play BluJem with me',
         sharePositionOrigin: origin,
       ),
