@@ -1023,6 +1023,32 @@ async function scoreBoard(app, caller, body, res) {
 	return sendJson(res, 200, { period, entries, me });
 }
 
+/**
+ * The admin's player list: every account with when it joined, how many
+ * puzzles it has finished and its points, most points first. Admins only —
+ * players see the public board above, never this one.
+ */
+async function adminPlayers(app, caller, res) {
+	if (caller.role !== 'admin') return sendJson(res, 403, { error: 'Only an admin can see the player list.' });
+	const users = await allRows(app, USERS, `SELECT ROWID, Username, Name, CREATEDTIME FROM ${USERS}`);
+	const totals = await allRows(app, USER_SCORES, `SELECT UserId, TotalPoints, PuzzlesCompleted FROM ${USER_SCORES}`);
+	return sendJson(res, 200, { players: playerRows(users, totals) });
+}
+
+/** Users joined with their score totals; a player with no score yet shows 0. */
+function playerRows(users, totals) {
+	const byUser = new Map(totals.map((t) => [String(t.UserId), t]));
+	return users.map((u) => {
+		const t = byUser.get(String(u.ROWID)) || {};
+		return {
+			name: String(u.Username || '').trim() || String(u.Name || '').trim() || 'Player',
+			since: String(u.CREATEDTIME || '').slice(0, 10),
+			games: Number(t.PuzzlesCompleted || 0),
+			points: Number(t.TotalPoints || 0)
+		};
+	}).sort((a, b) => b.points - a.points || b.games - a.games || a.since.localeCompare(b.since));
+}
+
 // ------------------------------------------------------------------ handler
 
 module.exports = async (req, res) => {
@@ -1060,6 +1086,7 @@ module.exports = async (req, res) => {
 			case 'puzzles/publish-draft': return await publishDraft(app, caller, body, res);
 			case 'puzzles/answers': return await puzzleAnswers(app, caller, body, res);
 			case 'puzzles/sheet': return await streamSheet(app, caller, body, res);
+			case 'admin/players': return await adminPlayers(app, caller, res);
 			case 'admin/migrate-slots': return await migrateSlots(app, caller, res);
 			case 'completions/list': return await listCompletions(app, caller, res);
 			case 'completions/record': return await recordCompletion(app, caller, body, res);
@@ -1079,3 +1106,4 @@ module.exports = async (req, res) => {
 
 // For tests: the scoring rules, which need no database.
 module.exports.scoreRun = scoreRun;
+module.exports.playerRows = playerRows;

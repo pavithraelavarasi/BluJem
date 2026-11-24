@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { scoreRun } = require('../index');
+const { scoreRun, playerRows } = require('../index');
 const { cleanAbout, aboutProblem } = require('../lib/profile');
 
 const run = (extra) => scoreRun({
@@ -49,4 +49,20 @@ test('About me is tidied and kept short', () => {
 	assert.equal(cleanAbout('a\u0007b'), 'ab');
 	assert.equal(aboutProblem('x'.repeat(300)), null);
 	assert.match(aboutProblem('x'.repeat(301)), /300 characters/);
+});
+
+test('the admin player list joins accounts with their totals, most points first', () => {
+	const rows = playerRows(
+		[
+			{ ROWID: '1', Username: 'otter_7', Name: 'Asha', CREATEDTIME: '2026-11-05 17:19:00:123' },
+			{ ROWID: '2', Username: '', Name: 'Ravi', CREATEDTIME: '2026-11-10 09:00:00:000' },
+			{ ROWID: '3', Username: 'newbie', CREATEDTIME: '2026-11-20 10:00:00:000' }
+		],
+		[{ UserId: '2', TotalPoints: '420', PuzzlesCompleted: '6' }, { UserId: '1', TotalPoints: '150', PuzzlesCompleted: '3' }]
+	);
+	assert.deepEqual(rows, [
+		{ name: 'Ravi', since: '2026-11-10', games: 6, points: 420 },
+		{ name: 'otter_7', since: '2026-11-05', games: 3, points: 150 },
+		{ name: 'newbie', since: '2026-11-20', games: 0, points: 0 }
+	]);
 });

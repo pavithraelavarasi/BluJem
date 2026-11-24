@@ -45,6 +45,8 @@ function uploadPage() {
 	table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 	td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 	.hidden { display: none; }
+	.num { text-align: right; font-variant-numeric: tabular-nums; }
+	.scroll { overflow-x: auto; }
 	pre { background: var(--bg); padding: 10px; border-radius: 8px; overflow-x: auto; }
 	.wordhead { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; }
 	.wordhead label { margin: 0; }
@@ -117,6 +119,14 @@ function uploadPage() {
 		<div class="msg" id="listMsg"></div>
 	</section>
 
+	<section id="players" class="hidden">
+		<h2>Leaderboard <span class="hint" id="playerCount"></span></h2>
+		<p class="hint">Every player, most points first. Only admins can see this list.</p>
+		<div class="scroll"><table><thead><tr><th>#</th><th>Player name</th><th>Player since</th><th class="num">Games played</th><th class="num">Total score</th></tr></thead><tbody id="playerList"></tbody></table></div>
+		<button class="plain" id="playersRefresh">Refresh</button>
+		<div class="msg" id="playersMsg"></div>
+	</section>
+
 	<section id="draft" class="hidden">
 		<h2 id="draftTitle">Draft</h2>
 		<p class="hint">Sent by the BluJem GPT. Check the cartoon, the letters and the answers before publishing. Players see nothing until you publish.</p>
@@ -151,9 +161,9 @@ function uploadPage() {
 
 	function show(el, text, ok) { el.textContent = text; el.className = 'msg ' + (ok ? 'good' : 'bad'); }
 
-	function signOut() { token = ''; sessionStorage.removeItem('blujemToken'); $('signin').classList.remove('hidden'); $('form').classList.add('hidden'); $('upcoming').classList.add('hidden'); $('draft').classList.add('hidden'); }
+	function signOut() { token = ''; sessionStorage.removeItem('blujemToken'); $('signin').classList.remove('hidden'); $('form').classList.add('hidden'); $('upcoming').classList.add('hidden'); $('players').classList.add('hidden'); $('draft').classList.add('hidden'); }
 
-	function signedIn() { $('signin').classList.add('hidden'); $('form').classList.remove('hidden'); $('upcoming').classList.remove('hidden'); loadList(); }
+	function signedIn() { $('signin').classList.add('hidden'); $('form').classList.remove('hidden'); $('upcoming').classList.remove('hidden'); $('players').classList.remove('hidden'); loadList(); loadPlayers(); }
 
 	// Google or Zoho: Catalyst's own sign-in page checks the account (no
 	// password ever reaches this page) and sends the browser back here; its
@@ -414,6 +424,35 @@ function uploadPage() {
 	const SLOT_NAMES = { morning: 'Morning', evening: 'Afternoon', night: 'Night', sunday: 'Sunday' };
 	const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 	let drafts = {};
+
+	const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+	function sinceLabel(day) {
+		const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(day || '');
+		return m ? Number(m[3]) + ' ' + MONTHS[Number(m[2]) - 1] + ' ' + m[1] : '—';
+	}
+
+	async function loadPlayers() {
+		const body = $('playerList');
+		$('playersMsg').textContent = '';
+		try {
+			const { players } = await call(DATA + 'admin/players');
+			body.replaceChildren(...players.map((p, i) => {
+				const tr = document.createElement('tr');
+				[String(i + 1), p.name, sinceLabel(p.since), String(p.games), p.points.toLocaleString('en-IN')].forEach((text, c) => {
+					const td = document.createElement('td');
+					td.textContent = text;
+					if (c >= 3) td.className = 'num';
+					tr.appendChild(td);
+				});
+				return tr;
+			}));
+			$('playerCount').textContent = '— ' + players.length + (players.length === 1 ? ' player' : ' players');
+			if (!players.length) show($('playersMsg'), 'No players yet.', true);
+		} catch (e) {
+			show($('playersMsg'), e.message, false);
+		}
+	}
+	$('playersRefresh').onclick = loadPlayers;
 
 	async function loadList() {
 		try {
