@@ -617,7 +617,7 @@ class HowToPlay extends StatelessWidget {
       'Tap a formed letter to go back to it. '
           '${Theme.of(context).platform == TargetPlatform.macOS ? 'On a keyboard, type letters and press Backspace to undo.' : 'Shake the phone to mix the unsolved letters again.'}',
       'The circled letters drop into the answer row at the bottom.',
-      'Stuck? Hint puts one right letter in place, and it stays there. Each hint takes a little off that word’s points.',
+      'Stuck? Hint sends the letter under the cursor to its right place, and it stays there. Each hint takes a little off that word’s points.',
       'Swipe to the cartoon, read the riddle, and arrange the circled letters into the answer.',
       'The faster you finish, the more you score.',
     ];

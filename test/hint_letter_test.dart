@@ -40,49 +40,57 @@ Board _withCursor(Board b, int n) {
 
 void main() {
   group('the board', () {
-    test('1. L D L O → D O L L, cursor on the second square: the O is moved in, not swapped', () {
+    test('1. L D L O → D O L L, cursor on D: D goes to the first square, the L there comes to the cursor', () {
       final b = word('LDLO', 'DOLL', cursor: 1);
       expect(b.formedIn(1), 1);
       final hint = b.placeHint(1)!;
       final r = hint.board.row(1)!;
-      expect(hint.square, 1);
-      expect(hint.tile, 3, reason: 'the O, by its own tile id');
-      expect(r.letters, 'LODL', reason: 'taken out and put in: a swap would give LOLD');
-      expect(r.fixed, {1});
-      expect(hint.board.formedIn(1), 2, reason: 'the cursor moves on to the next wrong square');
+      expect(hint.square, 0, reason: "D's right square");
+      expect(hint.tile, 1, reason: 'the D, by its own tile id');
+      expect(r.letters, 'DLLO', reason: 'a swap: the other letters stay where they were');
+      expect(r.fixed, {0});
+      expect(r.solved, isFalse, reason: 'one hint, one letter');
+      expect(hint.board.formedIn(1), 1, reason: 'the cursor stays: its new letter L is still wrong there');
       expect((r.order.toList()..sort()), [0, 1, 2, 3], reason: 'every tile once');
     });
 
-    test('2. duplicate letters: R A J A → A J A R, one A at a time, no tile lost or doubled', () {
+    test('1b. the next hint sends the new cursor letter home in the same way', () {
+      final b = word('LDLO', 'DOLL', cursor: 1).placeHint(1)!.board;
+      final hint = b.placeHint(1)!;
+      expect(hint.square, 3, reason: 'the L under the cursor goes to the last square, the only wrong L square');
+      expect(hint.board.row(1)!.letters, 'DOLL');
+      expect(hint.board.row(1)!.solved, isTrue);
+    });
+
+    test('2. duplicate letters: R A J A → A J A R, no tile lost or doubled', () {
       var b = word('RAJA', 'AJAR');
       final first = b.placeHint(1)!;
-      expect(first.square, 0);
-      expect(first.tile, 1, reason: 'the nearer of the two As');
+      expect(first.square, 3, reason: "R's home");
+      expect(first.tile, 0);
       b = first.board;
-      expect(b.row(1)!.letters, 'ARJA');
+      expect(b.row(1)!.letters, 'AAJR');
+      expect(b.row(1)!.fixed, {3});
+      expect(b.formedIn(1), 1, reason: 'the A now in square 0 is right, so the cursor moves to square 1');
 
-      b = b.placeHint(1)!.board;
-      expect(b.row(1)!.letters, 'AJRA');
-      expect(b.row(1)!.fixed, {0, 1});
-
-      b = b.placeHint(1)!.board;
+      final second = b.placeHint(1)!;
+      expect(second.square, 2, reason: 'the A goes to the A square that is wrong, not the one already right');
+      b = second.board;
       expect(b.row(1)!.letters, 'AJAR');
       expect(b.row(1)!.solved, isTrue);
       expect((b.row(1)!.order.toList()..sort()), [0, 1, 2, 3]);
     });
 
-    test('2b. the A is taken from where it is wrong, not from where it is already right', () {
-      // A J R A: the A in square 0 is right; the hint for square 2 takes the A from square 3.
-      final b = word('AJRA', 'AJAR', cursor: 2);
-      final hint = b.placeHint(1)!;
-      expect(hint.tile, 3);
-      expect(hint.board.row(1)!.letters, 'AJAR');
+    test('2b. an A with two wrong A squares goes to the nearer one', () {
+      final hint = word('RAJA', 'AJAR', cursor: 1).placeHint(1)!;
+      expect(hint.tile, 1);
+      expect([0, 2], contains(hint.square));
+      expect((hint.board.row(1)!.order.toList()..sort()), [0, 1, 2, 3]);
     });
 
-    test('3. a square already right is skipped: the next wrong one gets the letter', () {
+    test('3. the cursor letter already right is skipped: the next wrong letter is helped', () {
       final b = word('DLLO', 'DOLL'); // the cursor's D is right
       final hint = b.placeHint(1)!;
-      expect(hint.square, 1);
+      expect(hint.square, 3, reason: 'the L in square 1 goes to the last square');
       expect(hint.board.row(1)!.letters, 'DOLL');
     });
 
@@ -110,9 +118,9 @@ void main() {
     });
 
     test('other letters still move around a fixed one', () {
-      final b = word('LDLO', 'DOLL', cursor: 1).placeHint(1)!.board; // L O D L, square 1 fixed
-      final moved = b.drag(1, 0, 3);
-      expect(moved.row(1)!.letters, 'DOLL', reason: 'L slides past the fixed O');
+      final b = word('LDLO', 'DOLL', cursor: 1).placeHint(1)!.board; // D L L O, square 0 fixed
+      final moved = b.drag(1, 3, 1);
+      expect(moved.row(1)!.letters, 'DOLL', reason: 'O slides in past the Ls; the fixed D stays');
       expect(moved.row(1)!.solved, isTrue);
     });
   });
@@ -143,7 +151,7 @@ void main() {
       final g = game()..start();
       final sounds = <GameSound>[];
       g.onSound = sounds.add;
-      for (var i = 0; i < 3; i++) {
+      for (var i = 0; i < 2; i++) {
         await g.hintLetter(1);
         g.hinting = false; // the settle timer, without waiting for it
       }
@@ -151,9 +159,9 @@ void main() {
       expect(g.board.row(1)!.letters, 'AJAR');
       expect(g.board.finalRow.pool.replaceAll(' ', ''), 'JA', reason: 'the circled J and A, copied down');
       expect(g.board.solvedCount, 1);
-      expect(g.hintsUsed, 3);
-      expect(g.letterHints, {1: 3});
-      expect(sounds.where((s) => s == GameSound.hint).length, 3);
+      expect(g.hintsUsed, 2);
+      expect(g.letterHints, {1: 2});
+      expect(sounds.where((s) => s == GameSound.hint).length, 2);
       await Future<void>.delayed(GameController.hintMove + const Duration(milliseconds: 50));
       expect(sounds.last, GameSound.solved, reason: "the word's chime after the hint's");
       g.dispose();
@@ -191,12 +199,12 @@ void main() {
       await g.hintLetter(1);
       expect(g.hintsUsed, 0);
       g.start();
-      for (var i = 0; i < 3; i++) {
+      for (var i = 0; i < 2; i++) {
         await g.hintLetter(1);
         g.hinting = false;
       }
       await g.hintLetter(1); // solved now
-      expect(g.hintsUsed, 3);
+      expect(g.hintsUsed, 2);
       g.dispose();
     });
   });

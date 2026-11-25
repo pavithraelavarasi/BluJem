@@ -413,6 +413,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                     onTap: (i) => _act(finalRowId, () => game.tapLetter(finalRowId, i)),
                     onDrag: (a, b) => _act(finalRowId, () => game.dragLetter(finalRowId, a, b)),
                     onMiss: () => _focusRow(finalRowId),
+                    onFixed: _fixedLetter,
                   ),
                 ),
               ),
@@ -436,6 +437,14 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
     if (rowId != finalRowId && _page != 0) _goToPage(0);
     setState(() => _focus = rowId);
     unawaited(game.hintLetter(rowId));
+  }
+
+  /// A letter a hint put right was touched: it stays, and a short note says why.
+  void _fixedLetter() {
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(content: Text('This letter is already in its correct place.'), duration: Duration(seconds: 2)),
+    );
   }
 
   void _act(int rowId, VoidCallback action) {
@@ -478,6 +487,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                     onTap: (x) => _act(board.words[i].id, () => game.tapLetter(board.words[i].id, x)),
                     onDrag: (a, b) => _act(board.words[i].id, () => game.dragLetter(board.words[i].id, a, b)),
                     onFocus: () => _focusRow(board.words[i].id),
+                    onFixed: _fixedLetter,
                   ),
               ],
             ),
@@ -531,8 +541,10 @@ class _WordRow extends StatefulWidget {
     required this.onFocus,
     this.hintTile,
     this.hintTick = 0,
+    this.onFixed,
   });
 
+  final VoidCallback? onFixed;
   final int? hintTile;
   final int hintTick;
   final int number;
@@ -603,6 +615,7 @@ class _WordRowState extends State<_WordRow> with SingleTickerProviderStateMixin 
                   shuffleTick: widget.shuffleTick,
                   hintTile: widget.hintTile,
                   hintTick: widget.hintTick,
+                  onFixed: widget.onFixed,
                   formed: widget.formed,
                   enabled: widget.enabled,
                   showCursor: active,

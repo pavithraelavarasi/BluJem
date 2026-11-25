@@ -163,6 +163,7 @@ class TileRow extends StatefulWidget {
     this.lineBreaks = const [],
     this.hintTile,
     this.hintTick = 0,
+    this.onFixed,
   });
 
   final RowState row;
@@ -206,6 +207,9 @@ class TileRow extends StatefulWidget {
   /// square and settles.
   final int? hintTile;
   final int hintTick;
+
+  /// A letter a hint fixed was tapped or dragged: it stays, and the player is told why.
+  final VoidCallback? onFixed;
 
   /// How long a hinted letter glides; the game holds the Hint button as long.
   static const hintMove = Duration(milliseconds: 380);
@@ -361,8 +365,12 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
 
         void onStart(Offset local) {
           final i = layout.nearest(local);
+          if (letters[i] == ' ') return;
           // A letter a hint put right stays where it is.
-          if (letters[i] == ' ' || widget.row.fixed.contains(i)) return;
+          if (widget.row.fixed.contains(i)) {
+            widget.onFixed?.call();
+            return;
+          }
           setState(() {
             _dragFrom = i;
             _dragTo = i;
@@ -430,10 +438,13 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
                 ? (d) {
                     setState(() => _pressed = null);
                     final i = layout.nearest(d.localPosition);
-                    if (letters[i] == ' ' ||
-                        widget.row.fixed.contains(i) ||
-                        !layout.hitsTile(d.localPosition, slack: layout.size * 0.15)) {
+                    if (letters[i] == ' ' || !layout.hitsTile(d.localPosition, slack: layout.size * 0.15)) {
                       widget.onMiss?.call();
+                      return;
+                    }
+                    if (widget.row.fixed.contains(i)) {
+                      widget.onMiss?.call();
+                      widget.onFixed?.call();
                       return;
                     }
                     HapticFeedback.lightImpact();

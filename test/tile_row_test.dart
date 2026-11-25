@@ -214,4 +214,39 @@ void main() {
     await tester.pump(const Duration(milliseconds: 40));
     expect(offsetOf(), 0, reason: 'a solved word does not move');
   });
+
+  testWidgets('a letter a hint fixed is neither tapped nor dragged: the player is told instead', (tester) async {
+    var told = 0;
+    final fixed = RowState(id: 1, answer: 'AJAR', pool: 'AJRA', order: const [0, 1, 2, 3], fixed: const {0});
+    await pump(
+      tester,
+      TileRow(
+        row: fixed,
+        color: Colors.pink,
+        groups: const [4],
+        formed: 1,
+        enabled: true,
+        showCursor: true,
+        maxTile: 44,
+        onTap: taps.add,
+        onDrag: (a, b) => drags.add((a, b)),
+        onMiss: () => misses++,
+        onFixed: () => told++,
+      ),
+    );
+    final layout = TileLayout.of([4], 400, maxSize: 44);
+    await tester.tapAt(square(tester, 0, layout).center);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(taps, isEmpty);
+    expect(told, 1);
+
+    await tester.dragFrom(square(tester, 0, layout).center, Offset(layout.size * 2.2, 0));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(drags, isEmpty);
+    expect(told, 2);
+
+    await tester.tapAt(square(tester, 2, layout).center);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(taps, [2], reason: 'the other letters still play');
+  });
 }

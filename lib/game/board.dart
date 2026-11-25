@@ -359,36 +359,35 @@ class Board {
     return Board(words: words, finalRow: finalRow, follows: follows, formed: formed);
   }
 
-  /// One letter put right in row [id], for the Hint button: the square under
-  /// the cursor, or the next one from there that is wrong (around to the
-  /// start if need be). The right letter is taken out of its square and put
-  /// in, the letters between sliding along (never a swap), and the square is
-  /// fixed. The cursor moves on to the next square still wrong. Null when
-  /// nothing can be placed: solved, the answer not here, or no right letter
-  /// free to move.
+  /// The Hint button on row [id]: the letter under the cursor goes to its
+  /// right square, and the letter that was there comes back to the cursor —
+  /// a swap, so no other letter moves. The letter sent home is fixed there.
+  /// When the cursor's letter is already right, the next letter from there
+  /// that is not (around to the start if need be) is the one helped. The
+  /// cursor stays where it was, or moves on if its new letter is right too.
+  /// Null when nothing can be placed: solved, or the answer not here.
   ({Board board, int tile, int square})? placeHint(int id) {
     final r = row(id);
     if (r == null || r.solved || r.answer.length != r.length) return null;
     final letters = r.letters, answer = r.answer;
-    bool wrong(String spelled, int p) => !r.fixed.contains(p) && spelled[p] != answer[p];
+    bool wrong(String spelled, int p) => !r.fixed.contains(p) && spelled[p] != ' ' && spelled[p] != answer[p];
 
     final cursor = r.nextOpen(min(formedIn(id), r.formable)).clamp(0, r.length);
-    for (final square in [for (var i = cursor; i < r.length; i++) i, for (var i = 0; i < cursor; i++) i]) {
-      if (!wrong(letters, square)) continue;
-      // The right letter, from a square where it is not already right, and
-      // the nearest such, so the fewest letters slide.
-      final from =
-          [
-            for (var q = 0; q < r.length; q++)
-              if (q != square && !r.fixed.contains(q) && letters[q] == answer[square]) q,
-          ]..sort((a, b) {
-            final byPlace = (letters[a] == answer[a] ? 1 : 0) - (letters[b] == answer[b] ? 1 : 0);
-            return byPlace != 0 ? byPlace : (a - square).abs() - (b - square).abs();
-          });
-      if (from.isEmpty) continue;
+    for (final from in [for (var i = cursor; i < r.length; i++) i, for (var i = 0; i < cursor; i++) i]) {
+      if (!wrong(letters, from)) continue;
+      // Where this letter belongs: a square of its letter that is not right
+      // yet, the nearest such when the word has it more than once.
+      final homes = [
+        for (var t = 0; t < r.length; t++)
+          if (t != from && !r.fixed.contains(t) && answer[t] == letters[from] && letters[t] != answer[t]) t,
+      ]..sort((a, b) => (a - from).abs() - (b - from).abs());
+      if (homes.isEmpty) continue;
+      final home = homes.first;
 
-      final order = r.order.movedAround(from.first, square, r.fixed);
-      final placed = r.copyWith(fixed: {...r.fixed, square}).checked(order);
+      final order = [...r.order];
+      order[from] = r.order[home];
+      order[home] = r.order[from];
+      final placed = r.copyWith(fixed: {...r.fixed, home}).checked(order);
       final after = _replace(placed);
       // A hint is help asked for: Undo does not take it back, nor any move
       // on this row from before it.
@@ -402,15 +401,16 @@ class Board {
             if (s.rowId != id) s,
         ],
       );
+      // The cursor stays on its square while the letter there is still wrong.
       final spelled = placed.letters;
       var next = r.length;
-      for (final q in [for (var i = square + 1; i < r.length; i++) i, for (var i = 0; i < square; i++) i]) {
+      for (final q in [for (var i = from; i < r.length; i++) i, for (var i = 0; i < from; i++) i]) {
         if (!placed.fixed.contains(q) && spelled[q] != answer[q]) {
           next = q;
           break;
         }
       }
-      return (board: board._withFormed(id, next), tile: r.order[from.first], square: square);
+      return (board: board._withFormed(id, next), tile: r.order[from], square: home);
     }
     return null;
   }
