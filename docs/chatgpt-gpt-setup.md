@@ -2,7 +2,7 @@
 
 The GPT makes a puzzle as it does today and then sends it to BluJem itself.
 Everything it sends arrives as a **draft**: players see nothing until an admin
-checks it on the upload page (tinyurl.com/blujem-upload) and taps **Publish**.
+checks it on the admin page (tinyurl.com/blujem-admin) and taps **Publish**.
 It can never replace a puzzle that is already published.
 
 Needs a paid ChatGPT plan (Plus, Team or Enterprise) to create a Custom GPT.
@@ -119,7 +119,7 @@ paths:
 ## 3. Try it
 
 Ask the GPT for a puzzle for a future date. When it says it is saved, open
-tinyurl.com/blujem-upload, sign in as an admin, and the puzzle shows under
+tinyurl.com/blujem-admin, sign in as an admin, open Upload puzzles, and the puzzle shows under
 **Uploaded puzzles** as **Draft** with a **Check** button: look at the cartoon,
 letters and answers, then **Publish**.
 

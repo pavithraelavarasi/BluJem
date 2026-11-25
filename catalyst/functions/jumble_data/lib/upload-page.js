@@ -15,82 +15,142 @@ function uploadPage() {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BluJem Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-	:root { --bg: #faf6ee; --card: #fffdf8; --ink: #1d1b16; --soft: #5c5648; --line: #e3dccb; --accent: #1f5fae; --bad: #b3261e; --good: #2e7d32; }
-	@media (prefers-color-scheme: dark) {
-		:root { --bg: #17150f; --card: #211e17; --ink: #f2ede1; --soft: #b9b1a0; --line: #3a352a; --accent: #8db8f0; --bad: #f2b8b5; --good: #8fd694; }
+	/* BluJem beige and navy, always light (the same look as the tech page). */
+	:root {
+		color-scheme: light;
+		--bg: #F1E9D8; --card: #FFFDF8; --soft-bg: #F8F3E8; --ink: #18264A; --soft: #5E6680; --faint: #8F95A8;
+		--line: #E4DAC6; --navy: #16264A; --accent: #1F3A6E; --gold: #E8C27A; --bad: #B3261E; --good: #2E7D32;
+		--shadow: 0 1px 2px rgba(22,38,74,.06), 0 8px 24px rgba(22,38,74,.07);
 	}
 	* { box-sizing: border-box; }
-	body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-	main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
-	h1 { font-size: 1.8rem; margin: 0 0 4px; }
-	h2 { font-size: 1.1rem; margin: 0 0 12px; }
-	p.lead { color: var(--soft); margin: 0 0 24px; }
-	section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
-	label { display: block; font-weight: 600; margin: 14px 0 4px; }
-	.hint { color: var(--soft); font-size: 0.9rem; font-weight: 400; }
-	input, select, textarea { width: 100%; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
-	textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.1rem; min-height: 200px; }
-	.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-	@media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
-	button { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 18px; border: 1px solid var(--accent); cursor: pointer; margin: 16px 8px 0 0; }
-	button.primary { background: var(--accent); color: var(--bg); }
+	html { -webkit-text-size-adjust: 100%; }
+	body { margin: 0; background: var(--bg); color: var(--ink); font: 15.5px/1.6 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+	a { color: var(--accent); }
+
+	/* Header band */
+	header.bar { background: var(--navy); color: #FFF8EC; }
+	header.bar .in { max-width: 880px; margin: 0 auto; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+	header.bar .gem { width: 30px; height: 30px; flex: none; }
+	header.bar h1 { font: 600 1.35rem/1 Fredoka, Inter, sans-serif; margin: 0; letter-spacing: .01em; }
+	header.bar h1 span { color: var(--gold); }
+	header.bar .sub { color: #C9D0E2; font-size: .85rem; margin-left: 2px; }
+	header.bar .grow { flex: 1; }
+	header.bar button.out { margin: 0; padding: 7px 14px; font-size: .85rem; background: transparent; color: #FFF8EC; border: 1px solid rgba(255,248,236,.35); border-radius: 999px; }
+	header.bar button.out:hover { border-color: var(--gold); color: var(--gold); }
+
+	main { max-width: 880px; margin: 0 auto; padding: 28px 20px 72px; }
+	h2 { font: 600 1.15rem/1.3 Fredoka, Inter, sans-serif; margin: 0 0 14px; color: var(--ink); }
+	section { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+	label { display: block; font-weight: 600; font-size: .92rem; margin: 16px 0 6px; }
+	.hint { color: var(--soft); font-size: .86rem; font-weight: 400; }
+	input, select, textarea { width: 100%; font: inherit; color: inherit; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; transition: border-color .15s, box-shadow .15s; }
+	input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,58,110,.14); }
+	input[type=file] { padding: 9px; background: var(--soft-bg); }
+	textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.05rem; min-height: 200px; }
+	.row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+	@media (max-width: 560px) { .row { grid-template-columns: 1fr; } section { padding: 18px; border-radius: 16px; } }
+
+	button { font: inherit; font-weight: 600; border-radius: 999px; padding: 10px 20px; border: 1px solid var(--accent); cursor: pointer; margin: 18px 8px 0 0; transition: background .15s, color .15s, box-shadow .15s; }
+	button.primary { background: var(--accent); color: #FFF8EC; box-shadow: 0 2px 6px rgba(31,58,110,.25); }
+	button.primary:hover { background: var(--navy); }
 	button.plain { background: transparent; color: var(--accent); }
-	button.social { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; background: #fff; color: #1f1f1f; border: 1px solid #dadce0; }
+	button.plain:hover { background: rgba(31,58,110,.07); }
+	button:disabled { opacity: .5; cursor: default; }
+	button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+	button.social { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; background: #fff; color: #1f1f1f; border: 1px solid #dadce0; border-radius: 12px; margin-top: 4px; }
+	button.social:hover { background: #f7f7f7; }
 	button.social svg { width: 20px; height: 20px; }
-	.or { text-align: center; color: var(--muted, #8a8a8a); font-size: 13px; margin: 18px 0 4px; }
-	button:disabled { opacity: 0.5; cursor: default; }
-	.msg { margin-top: 14px; white-space: pre-line; }
+	.or { display: flex; align-items: center; gap: 12px; color: var(--faint); font-size: .82rem; margin: 22px 0 2px; }
+	.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+	.msg { margin-top: 14px; white-space: pre-line; font-size: .92rem; }
+	.msg:empty { display: none; }
+	.msg.good, .msg.bad { padding: 10px 14px; border-radius: 10px; }
+	.msg.good { background: #EAF4EA; } .msg.bad { background: #FBEAE8; }
 	.bad { color: var(--bad); } .good { color: var(--good); }
-	.words input { font-family: ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; margin-bottom: 6px; }
-	table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-	td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 	.hidden { display: none !important; }
-	.tiles2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-	@media (max-width: 520px) { .tiles2 { grid-template-columns: 1fr; } }
-	button.tile2 { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 22px 20px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; font-weight: 400; }
-	button.tile2:hover, button.tile2:focus-visible { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent) inset; }
-	button.tile2 b { font-size: 1.15rem; color: var(--accent); }
-	button.tile2 .ico { font-size: 1.6rem; color: var(--accent); }
-	button.back { margin: 0 0 16px; padding: 6px 12px; }
-	.thumbs { display: flex; gap: 6px; }
-	.thumbs img { height: 64px; width: auto; max-width: 96px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: zoom-in; }
-	.thumbs .none { color: var(--soft); font-size: 0.85rem; }
-	#viewer { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; cursor: zoom-out; }
-	#viewer img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; background: #fff; }
+
+	/* Sign-in card, narrow and centred */
+	#signin { max-width: 440px; margin: 24px auto; }
+	#signin h2 { text-align: center; font-size: 1.35rem; margin-bottom: 4px; }
+	#signin .hint.center { text-align: center; display: block; margin-bottom: 18px; }
+	#signin button.primary { width: 100%; }
+
+	/* Admin home */
+	.welcome { margin: 4px 0 20px; }
+	.welcome h2 { font-size: 1.6rem; margin: 0 0 2px; }
+	.welcome p { margin: 0; color: var(--soft); }
+	.tiles2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+	@media (max-width: 560px) { .tiles2 { grid-template-columns: 1fr; } }
+	button.tile2 { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; padding: 26px 24px; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 20px; font-weight: 400; box-shadow: var(--shadow); transition: transform .15s, box-shadow .15s, border-color .15s; }
+	button.tile2:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 2px 4px rgba(22,38,74,.08), 0 14px 32px rgba(22,38,74,.12); background: var(--card); }
+	button.tile2 .ico { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--navy); color: var(--gold); margin-bottom: 6px; }
+	button.tile2 .ico svg { width: 24px; height: 24px; }
+	button.tile2 b { font: 600 1.2rem/1.2 Fredoka, Inter, sans-serif; color: var(--ink); }
+	button.tile2 .go { margin-top: 6px; color: var(--accent); font-weight: 600; font-size: .9rem; }
+
+	/* Breadcrumb and page intro */
+	.crumbs { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; }
+	.crumbs button.back { margin: 0; padding: 6px 14px; font-size: .88rem; }
+	.crumbs .here { font: 600 1.15rem Fredoka, Inter, sans-serif; }
+	p.lead { color: var(--soft); background: var(--soft-bg); border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 12px; padding: 12px 16px; margin: 0 0 20px; font-size: .92rem; }
+
+	/* Tables */
+	table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+	th { text-align: left; font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+	td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+	tbody tr:last-child td { border-bottom: none; }
+	tbody tr:hover td { background: var(--soft-bg); }
 	.num { text-align: right; font-variant-numeric: tabular-nums; }
-	.scroll { overflow-x: auto; }
-	pre { background: var(--bg); padding: 10px; border-radius: 8px; overflow-x: auto; }
-	.wordhead { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; }
+	.scroll { overflow-x: auto; margin: 0 -4px; }
+	#playerList td:nth-child(1) { color: var(--faint); width: 40px; }
+	#playerList tr:nth-child(-n+3) td:nth-child(1) { color: var(--accent); font-weight: 700; }
+	#playerList td:nth-child(2) { font-weight: 600; }
+
+	.thumbs { display: flex; gap: 8px; }
+	.thumbs img { height: 64px; width: auto; max-width: 96px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: zoom-in; transition: transform .15s; }
+	.thumbs img:hover { transform: scale(1.04); }
+	.thumbs .none { color: var(--faint); font-size: .82rem; }
+	#viewer { position: fixed; inset: 0; background: rgba(12,20,40,.88); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10; cursor: zoom-out; }
+	#viewer img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; background: #fff; }
+
+	/* Puzzle form helpers */
+	pre { background: var(--soft-bg); padding: 10px; border-radius: 8px; overflow-x: auto; }
+	.words input { font-family: ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; margin-bottom: 6px; }
+	.wordhead { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; }
 	.wordhead label { margin: 0; }
-	.mix { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.15em; font-size: 1.1rem; font-weight: 600; color: var(--ink); }
-	button.shuffle { margin: 0; padding: 0; width: 30px; height: 30px; flex: none; border-radius: 7px; border: none; background: #e0123f; color: #fff; font-size: 17px; line-height: 30px; }
-	button.shuffle:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-	.tiles { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; align-items: center; padding: 6px; border: 1px dashed var(--line); border-radius: 8px; margin-bottom: 6px; }
-	.tile { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--accent); font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: 1.05rem; }
-	.tile.empty { border-style: dashed; border-color: var(--line); color: var(--soft); }
-	.preview { margin: 10px 0 4px; }
-	.preview img { display: block; width: 100%; max-height: 80vh; object-fit: contain; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+	.mix { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: .15em; font-size: 1.1rem; font-weight: 600; color: var(--ink); }
+	button.shuffle { margin: 0; padding: 0; width: 32px; height: 32px; flex: none; border-radius: 9px; border: none; background: #e0123f; color: #fff; font-size: 17px; line-height: 32px; box-shadow: 0 2px 5px rgba(224,18,63,.3); }
+	.tiles { display: flex; flex-wrap: wrap; gap: 6px; min-height: 46px; align-items: center; padding: 6px 8px; background: var(--soft-bg); border: 1px dashed var(--line); border-radius: 10px; margin-bottom: 6px; }
+	.tile { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--accent); background: #fff; font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: 1.05rem; }
+	.tile.empty { border-style: dashed; border-color: var(--line); color: var(--faint); background: transparent; }
+	.preview { margin: 12px 0 4px; }
+	.preview img { display: block; width: 100%; max-height: 80vh; object-fit: contain; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+	.preview figcaption { margin-top: 6px; }
 </style>
 </head>
 <body>
+<header class="bar"><div class="in"><svg class="gem" viewBox="0 0 40 40" aria-hidden="true"><path d="M12 6h16l8 10-16 19L4 16z" fill="#E8C27A"/><path d="M12 6l8 10 8-10M4 16h32M20 16v19" stroke="#FFF4DC" stroke-width="1.6" fill="none"/></svg><h1>Blu<span>Jem</span> Admin</h1><span class="grow"></span><button class="out hidden" id="signOutBtn">Sign out</button></div></header>
 <main>
-	<h1>BluJem Admin</h1>
-
-	<section id="home" class="hidden">
+	<section id="home" class="hidden" style="background:none;border:none;box-shadow:none;padding:0">
+		<div class="welcome"><h2>Welcome back</h2><p>What would you like to do?</p></div>
 		<div class="tiles2">
-			<button class="tile2" id="goUpload"><span class="ico">&#x2B06;&#xFE0E;</span><b>Upload puzzles</b><span class="hint">Add a puzzle, check drafts, see and edit what's uploaded.</span></button>
-			<button class="tile2" id="goBoard"><span class="ico">&#x1F3C6;&#xFE0E;</span><b>Leaderboard</b><span class="hint">Every player: since when, games played and total score.</span></button>
+			<button class="tile2" id="goUpload"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></span><b>Upload puzzles</b><span class="hint">Add a puzzle, check drafts, and see or edit what's uploaded.</span><span class="go">Open &rarr;</span></button>
+			<button class="tile2" id="goBoard"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></span><b>Leaderboard</b><span class="hint">Every player: when they joined, games played and total score.</span><span class="go">Open &rarr;</span></button>
 		</div>
-		<button class="plain" id="signOutBtn">Sign out</button>
 	</section>
 
-	<div id="backBar" class="hidden"><button class="plain back" id="backBtn">&larr; Admin home</button></div>
+	<div id="backBar" class="crumbs hidden"><button class="plain back" id="backBtn">&larr; Admin home</button><span class="here" id="crumbHere"></span></div>
 
 	<p class="lead hidden" id="uploadLead">Upload a puzzle for any date. Every day, Sunday included, has three: morning (9:00 AM), afternoon (3:00 PM) and night (9:00 PM), 4 words each. The morning puzzle opens the moment you publish it, but not before 9:00 AM. The afternoon and night puzzles open at their time. Players get a notification when each opens. India time.</p>
 
 	<section id="signin">
 		<h2>Sign in</h2>
+		<span class="hint center">Admins only.</span>
 		<button class="social" id="socialBtn"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Sign in with Google or Zoho</button>
 		<div class="msg" id="socialMsg"></div>
 		<div class="or">or with a BluJem password</div>
@@ -145,7 +205,7 @@ function uploadPage() {
 	</section>
 
 	<section id="players" class="hidden">
-		<h2>Leaderboard <span class="hint" id="playerCount"></span></h2>
+		<h2>All players <span class="hint" id="playerCount"></span></h2>
 		<p class="hint">Every player, most points first. Only admins can see this list.</p>
 		<div class="scroll"><table><thead><tr><th>#</th><th>Player name</th><th>Player since</th><th class="num">Games played</th><th class="num">Total score</th></tr></thead><tbody id="playerList"></tbody></table></div>
 		<button class="plain" id="playersRefresh">Refresh</button>
@@ -200,6 +260,8 @@ function uploadPage() {
 		ALL.forEach((id) => $(id).classList.add('hidden'));
 		VIEWS[view].forEach((id) => $(id).classList.remove('hidden'));
 		if (view !== 'home') $('backBar').classList.remove('hidden');
+		$('crumbHere').textContent = view === 'upload' ? 'Upload puzzles' : view === 'leaderboard' ? 'Leaderboard' : '';
+		$('signOutBtn').classList.remove('hidden');
 		if (view === 'upload') loadList();
 		if (view === 'leaderboard') loadPlayers();
 		document.title = view === 'upload' ? 'Upload · BluJem Admin' : view === 'leaderboard' ? 'Leaderboard · BluJem Admin' : 'BluJem Admin';
@@ -213,6 +275,7 @@ function uploadPage() {
 	function signOut() {
 		token = ''; signedInNow = false; sessionStorage.removeItem('blujemToken');
 		ALL.forEach((id) => $(id).classList.add('hidden'));
+		$('signOutBtn').classList.add('hidden');
 		$('signin').classList.remove('hidden');
 	}
 	$('signOutBtn').onclick = () => { signOut(); history.replaceState(null, '', location.pathname); };
