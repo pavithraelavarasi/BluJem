@@ -474,7 +474,10 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
   void _fixedLetter() {
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     messenger.showSnackBar(
-      const SnackBar(content: Text('This letter is already in its correct place.'), duration: Duration(seconds: 2)),
+      const SnackBar(
+        content: Text('You already used a hint here, and this letter is now in its correct place.'),
+        duration: Duration(seconds: 2),
+      ),
     );
   }
 
