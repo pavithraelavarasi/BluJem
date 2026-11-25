@@ -192,9 +192,33 @@ class GameController extends ChangeNotifier {
   /// is underway — nobody loses progress to a download.
   void _onLibraryChanged() {
     final day = library.dayPuzzle;
-    if (_followsDay && !started && !completed && day.id != puzzle.id) _open(day);
+    if (_followsDay && !started && !completed && day.id != puzzle.id) {
+      _open(day);
+    } else {
+      _takeCorrection();
+    }
     _scheduleWaitingCheck();
     notifyListeners();
+  }
+
+  /// An admin edited the open puzzle (same id, new version): play on against
+  /// the corrected answers, so a fixed answer is accepted without the player
+  /// starting over. Letters stay where the player put them.
+  void _takeCorrection() {
+    if (completed) return;
+    final fresh = library.all.where((p) => p.id == puzzle.id).firstOrNull;
+    if (fresh == null || identical(fresh, puzzle) || fresh.sheetVersion == puzzle.sheetVersion) return;
+    final carried = board.withChecksFrom(fresh);
+    if (carried == null) {
+      // The letters themselves changed: only a game not begun can switch.
+      if (!started) _open(fresh);
+      return;
+    }
+    final wasAnswered = !puzzle.answersHidden;
+    puzzle = fresh;
+    board = carried;
+    if (wasAnswered) unawaited(loadAnswers());
+    if (started && board.finalRow.solved) _finish(revealed: false);
   }
 
   /// While a slot of today's has opened and its puzzle isn't here, look

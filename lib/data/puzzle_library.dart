@@ -119,6 +119,7 @@ class PuzzleLibrary extends ChangeNotifier {
     _takenDown = _sorted(takenDown);
     _bundled = bundled;
     _checked = checked;
+    notifyListeners();
   }
 
   // ------------------------------------------------------------- the day
@@ -300,7 +301,14 @@ class PuzzleLibrary extends ChangeNotifier {
     final file = File('${_store.folder('sheets').path}/$name');
     if (!(file.existsSync() && file.lengthSync() > 0)) {
       final ok = await _api.download(JumbleFunction.data, 'puzzles/sheet', {'key': key}, file);
-      if (!ok) return null;
+      if (!ok) {
+        // An edited puzzle whose new picture did not come down this time
+        // keeps the picture already here, rather than leaving the list
+        // (and History) until the next sync.
+        final kept = _published.where((p) => p.id == puzzle.id && !p.image.isAsset).firstOrNull?.image;
+        if (kept != null && File(kept.path).existsSync()) return puzzle.withImage(kept);
+        return null;
+      }
     }
     return puzzle.withImage(SheetImage.file(file.path));
   }

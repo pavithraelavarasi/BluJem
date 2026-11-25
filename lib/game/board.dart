@@ -65,7 +65,14 @@ class RowState {
     return gap >= 0 ? gap : length;
   }
 
-  RowState copyWith({String? pool, List<int>? order, bool? solved, bool? revealed, String? answer}) => RowState(
+  RowState copyWith({
+    String? pool,
+    List<int>? order,
+    bool? solved,
+    bool? revealed,
+    String? answer,
+    String? answerHash,
+  }) => RowState(
     id: id,
     answer: answer ?? this.answer,
     pool: pool ?? this.pool,
@@ -73,7 +80,7 @@ class RowState {
     circles: circles,
     solved: solved ?? this.solved,
     revealed: revealed ?? this.revealed,
-    answerHash: answerHash,
+    answerHash: answerHash ?? this.answerHash,
     puzzleId: puzzleId,
   );
 
@@ -170,6 +177,35 @@ class Board {
       formed: formed,
       undo: undo,
     );
+  }
+
+  /// This board checked against [fresh], an admin's corrected copy of the
+  /// same puzzle: every letter stays where the player put it, and a row that
+  /// already spells the corrected answer counts as solved. Null when the
+  /// copy's letters or squares differ, so this board cannot carry over.
+  Board? withChecksFrom(Puzzle fresh) {
+    final next = Board.start(fresh);
+    if (next.words.length != words.length || next.follows != follows) return null;
+    String sorted(String s) => (s.split('')..sort()).join();
+    RowState? carry(RowState mine, RowState theirs) {
+      if (mine.id != theirs.id || mine.length != theirs.length || mine.circles.join() != theirs.circles.join()) {
+        return null;
+      }
+      // A word's letters are fixed by the sheet; the answer row's follow the words.
+      if (!mine.isFinal && sorted(mine.pool) != sorted(theirs.pool)) return null;
+      final r = mine.copyWith(answer: theirs.answer, answerHash: theirs.answerHash);
+      return r.revealed ? r : r.copyWith(solved: r.spells(r.letters));
+    }
+
+    final carried = <RowState>[];
+    for (var i = 0; i < words.length; i++) {
+      final r = carry(words[i], next.words[i]);
+      if (r == null) return null;
+      carried.add(r);
+    }
+    final last = carry(finalRow, next.finalRow);
+    if (last == null) return null;
+    return Board(words: carried, finalRow: last, follows: follows, formed: formed, undo: undo);
   }
 
   // ------------------------------------------------------------- reading
