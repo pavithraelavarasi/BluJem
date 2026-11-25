@@ -167,6 +167,75 @@ class GameController extends ChangeNotifier {
     _openIfNew(p);
   }
 
+  // ------------------------------------------------------------- drafts
+
+  /// Puzzles left part-way, by id, so going back to one picks it up where it
+  /// was: letters, solved words, hints and the time left, the clock paused.
+  /// Kept in memory only: while the app runs or waits in the background, not
+  /// once it is fully closed.
+  final _drafts = <String, _Draft>{};
+  bool _hasPuzzle = false;
+
+  /// Whether the board is on screen. Off it, the countdown holds.
+  bool _onScreen = false;
+
+  /// Whether [puzzleId] was left part-way and will pick up where it was.
+  bool hasDraft(String puzzleId) => _drafts.containsKey(puzzleId);
+
+  /// The board came on screen: a paused run carries on.
+  void boardShown() {
+    _onScreen = true;
+    onResumed();
+  }
+
+  /// The board went off screen (back to Today, History, ...): the countdown
+  /// holds, as it does when the app is in the background.
+  void boardHidden() {
+    _onScreen = false;
+    onLeftApp();
+  }
+
+  void _keepDraft() {
+    if (!started || completed) return;
+    if (!paused) {
+      tick();
+      _ticker?.cancel();
+    }
+    _drafts[puzzle.id] = _Draft(
+      puzzle: puzzle,
+      board: board,
+      timedOut: timedOut,
+      remainingSeconds: remainingSeconds,
+      pointsOrigin: _pointsOrigin,
+      pointsSeconds: pointsSeconds,
+      hintsUsed: hintsUsed,
+      rowHints: rowHints,
+      letterHints: letterHints,
+      alreadyScored: alreadyScored,
+      answersShown: answersShown,
+      startCall: _startCall,
+    );
+  }
+
+  void _restore(_Draft d) {
+    puzzle = d.puzzle;
+    board = d.board;
+    started = paused = true;
+    timedOut = d.timedOut;
+    remainingSeconds = d.remainingSeconds;
+    _pointsOrigin = d.pointsOrigin;
+    pointsSeconds = d.pointsSeconds;
+    hintsUsed = d.hintsUsed;
+    rowHints = d.rowHints;
+    letterHints = d.letterHints;
+    alreadyScored = d.alreadyScored;
+    answersShown = d.answersShown;
+    _startCall = d.startCall;
+    // An admin may have corrected it while it waited.
+    _takeCorrection();
+    if (_onScreen) onResumed();
+  }
+
   void _openIfNew(Puzzle p) {
     if (p.id == puzzle.id) return;
     _open(p);
@@ -178,7 +247,9 @@ class GameController extends ChangeNotifier {
     if (accountId == _account) return;
     _account = accountId;
     _followsDay = true;
-    _open(library.dayPuzzle);
+    // Another player's half-done puzzles are not theirs.
+    _drafts.clear();
+    _open(library.dayPuzzle, fresh: true);
     notifyListeners();
     await records.switchAccount(accountId);
     playedBefore = records.finished(puzzle.id);
@@ -186,7 +257,13 @@ class GameController extends ChangeNotifier {
     if (accountId != null) unawaited(library.sync());
   }
 
-  void _open(Puzzle p) {
+  /// Shows [p]: where it was left, if it was, unless [fresh]. The puzzle
+  /// being left is kept as a draft when it was part-way.
+  void _open(Puzzle p, {bool fresh = false}) {
+    final switching = !_hasPuzzle || p.id != puzzle.id;
+    if (_hasPuzzle && switching) _keepDraft();
+    final draft = _drafts.remove(p.id);
+    _hasPuzzle = true;
     _ticker?.cancel();
     puzzle = p;
     board = Board.start(p);
@@ -203,6 +280,7 @@ class GameController extends ChangeNotifier {
     _startCall = null;
     answersShown = false;
     playedBefore = records.finished(p.id);
+    if (draft != null && switching && !fresh) _restore(draft);
     _scheduleWaitingCheck();
   }
 
@@ -580,7 +658,7 @@ class GameController extends ChangeNotifier {
   /// Every letter back as printed, and the clock waiting for Start again.
   void resetPuzzle() {
     final p = puzzle;
-    _open(p);
+    _open(p, fresh: true);
     notifyListeners();
   }
 
@@ -599,4 +677,35 @@ class GameController extends ChangeNotifier {
     _hintSettle?.cancel();
     super.dispose();
   }
+}
+
+/// A puzzle left part-way: everything needed to carry on with it.
+class _Draft {
+  const _Draft({
+    required this.puzzle,
+    required this.board,
+    required this.timedOut,
+    required this.remainingSeconds,
+    required this.pointsOrigin,
+    required this.pointsSeconds,
+    required this.hintsUsed,
+    required this.rowHints,
+    required this.letterHints,
+    required this.alreadyScored,
+    required this.answersShown,
+    required this.startCall,
+  });
+
+  final Puzzle puzzle;
+  final Board board;
+  final bool timedOut;
+  final int remainingSeconds;
+  final int? pointsOrigin;
+  final int pointsSeconds;
+  final int hintsUsed;
+  final Map<int, RowHints> rowHints;
+  final Map<int, int> letterHints;
+  final bool alreadyScored;
+  final bool answersShown;
+  final Future<ScoreStart?>? startCall;
 }

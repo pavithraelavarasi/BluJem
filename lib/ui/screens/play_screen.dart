@@ -69,6 +69,10 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sign in to use hints.')));
     };
     game.addListener(_onGame);
+    // A run left part-way carries on, its clock running again.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) game.boardShown();
+    });
     _congratulated = game.completed;
     _finalReady = _isFinalReady;
     _onGame();
@@ -80,6 +84,9 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
     unawaited(NoScreenshot.instance.screenshotOn().catchError((Object _) => false));
     WidgetsBinding.instance.removeObserver(this);
     game.removeListener(_onGame);
+    // Off the board, the clock holds and the run waits as it is.
+    // Just after the screen is gone, so no other screen redraws mid-teardown.
+    scheduleMicrotask(game.boardHidden);
     _shake.stop();
     _pages.dispose();
     _keys.dispose();
