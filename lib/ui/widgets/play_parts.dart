@@ -623,7 +623,7 @@ class HowToPlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final steps = [
       'Unscramble each word. Tap its letters in order: R A J A → tap A, J, A, R → A J A R. '
-          'Or drag a letter to where it goes. A word fills with colour once it is right.',
+          'Or drag a letter to where it goes. A word fills with colour once it is right: tap its ✓ to see what it means.',
       'Tap a formed letter to go back to it. '
           '${Theme.of(context).platform == TargetPlatform.macOS ? 'On a keyboard, type letters and press Backspace to undo.' : 'Shake the phone to mix the unsolved letters again.'}',
       'The circled letters drop into the answer row at the bottom.',

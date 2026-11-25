@@ -26,6 +26,14 @@ class HintService {
   Future<Map<String, String>> get glossary =>
       _glossary ??= _loadGlossary().then((text) => compute(parseGlossary, text));
 
+  /// What [word] means, from the bundled glossary; null when it has none.
+  Future<String?> meaningOf(String word) async {
+    final meaning = (await glossary)[word.toUpperCase()];
+    if (meaning == null || meaning.trim().isEmpty) return null;
+    final text = meaning.trim();
+    return text[0].toUpperCase() + text.substring(1);
+  }
+
   Future<Hint> wordHint(Puzzle puzzle, PuzzleWord word, int level, List<String> previous) async {
     if (_signedIn()) {
       final reply = await _api.tryPost(

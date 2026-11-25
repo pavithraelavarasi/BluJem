@@ -439,6 +439,37 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
     unawaited(game.hintLetter(rowId));
   }
 
+  /// A solved word's meaning, from the glossary bundled with the app.
+  Future<void> _showMeaning(String word) async {
+    final meaning = await game.hints.meaningOf(word);
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) {
+        final t = Theme.of(sheet).textTheme;
+        final p = sheet.palette;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(word, style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 2)),
+                const SizedBox(height: 10),
+                Text(
+                  meaning ?? 'No meaning saved for this word yet.',
+                  style: t.bodyLarge?.copyWith(color: meaning == null ? p.inkSoft : p.ink, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   /// A letter a hint put right was touched: it stays, and a short note says why.
   void _fixedLetter() {
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
@@ -488,6 +519,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                     onDrag: (a, b) => _act(board.words[i].id, () => game.dragLetter(board.words[i].id, a, b)),
                     onFocus: () => _focusRow(board.words[i].id),
                     onFixed: _fixedLetter,
+                    onMeaning: () => _showMeaning(board.words[i].letters),
                   ),
               ],
             ),
@@ -542,9 +574,13 @@ class _WordRow extends StatefulWidget {
     this.hintTile,
     this.hintTick = 0,
     this.onFixed,
+    this.onMeaning,
   });
 
   final VoidCallback? onFixed;
+
+  /// The check of a solved word was tapped: show what the word means.
+  final VoidCallback? onMeaning;
   final int? hintTile;
   final int hintTick;
   final int number;
@@ -626,7 +662,7 @@ class _WordRowState extends State<_WordRow> with SingleTickerProviderStateMixin 
                 ),
               ),
               const SizedBox(width: 8),
-              _SolvedMark(solved: solved, pop: _pop),
+              _SolvedMark(solved: solved, pop: _pop, word: widget.row.letters, onTap: widget.onMeaning),
             ],
           ),
         ),
@@ -637,14 +673,18 @@ class _WordRowState extends State<_WordRow> with SingleTickerProviderStateMixin 
 
 /// The check that pops in when a word comes right; empty space before that.
 class _SolvedMark extends StatelessWidget {
-  const _SolvedMark({required this.solved, required this.pop});
+  const _SolvedMark({required this.solved, required this.pop, required this.word, this.onTap});
   final bool solved;
   final Animation<double> pop;
+  final String word;
+
+  /// Tapped once solved: the word's meaning.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    return SizedBox(
+    final mark = SizedBox(
       width: 28,
       height: 28,
       child: Stack(
@@ -670,6 +710,20 @@ class _SolvedMark extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+    if (!solved || onTap == null) return mark;
+    // A finger-sized target around the small check.
+    return Semantics(
+      button: true,
+      label: 'What $word means',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap!();
+        },
+        child: Padding(padding: const EdgeInsets.all(8), child: mark),
       ),
     );
   }
