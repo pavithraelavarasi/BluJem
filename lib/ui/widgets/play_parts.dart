@@ -595,8 +595,18 @@ Future<void> showHowToPlay(BuildContext context, {required bool pointsOn}) => sh
             ],
             const SizedBox(height: 12),
             const _Rule(
+              icon: Icons.lightbulb_rounded,
+              text:
+                  'Stuck? Tap Hint. The letter under the blue cursor jumps to its right place, and the letter '
+                  'that was there comes back to the cursor. The placed letter stays fixed, marked with a small dot. '
+                  'Each hint takes 5 points off that word.',
+            ),
+            const SizedBox(height: 12),
+            const _Rule(
               icon: Icons.pause_circle_outline_rounded,
-              text: 'Leave the app and the countdown waits for you.',
+              text:
+                  'Leave the puzzle or the app and the countdown waits, with your letters as you left them. '
+                  'Fully closing the app starts the puzzle over.',
             ),
           ],
         ),
@@ -617,7 +627,6 @@ class HowToPlay extends StatelessWidget {
       'Tap a formed letter to go back to it. '
           '${Theme.of(context).platform == TargetPlatform.macOS ? 'On a keyboard, type letters and press Backspace to undo.' : 'Shake the phone to mix the unsolved letters again.'}',
       'The circled letters drop into the answer row at the bottom.',
-      'Stuck? Hint sends the letter under the cursor to its right place, and it stays there. Each hint takes a little off that word’s points.',
       'Swipe to the cartoon, read the riddle, and arrange the circled letters into the answer.',
       'The faster you finish, the more you score.',
     ];
