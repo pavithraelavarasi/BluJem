@@ -64,6 +64,10 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('This needs a connection to BluJem. Try again in a moment.')));
     };
+    game.onHintNeedsSignIn = () {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sign in to use hints.')));
+    };
     game.addListener(_onGame);
     _congratulated = game.completed;
     _finalReady = _isFinalReady;
@@ -389,6 +393,8 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                     color: p.accent,
                     groups: puzzle.finalGroups,
                     formed: board.formedIn(finalRowId),
+                    hintTile: game.lastHint?.rowId == finalRowId ? game.lastHint!.tile : null,
+                    hintTick: game.lastHint?.rowId == finalRowId ? game.lastHint!.tick : 0,
                     enabled: !game.completed,
                     showCursor: active == finalRowId,
                     answerText: puzzle.finalShapeText,
@@ -404,7 +410,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(height: 8),
-              _ActionBar(game: game, target: active, onResults: _showResults),
+              _ActionBar(game: game, target: active, onResults: _showResults, onHint: _hint),
             ],
           ),
         ),
@@ -415,6 +421,14 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
   void _focusRow(int rowId) {
     if (_focus != rowId && game.board.row(rowId)?.solved == false) setState(() => _focus = rowId);
     _keys.requestFocus();
+  }
+
+  /// Hint: one right letter into the active word. The letters are on the
+  /// Words page, so a word's hint turns back to it first.
+  void _hint(int rowId) {
+    if (rowId != finalRowId && _page != 0) _goToPage(0);
+    setState(() => _focus = rowId);
+    unawaited(game.hintLetter(rowId));
   }
 
   void _act(int rowId, VoidCallback action) {
@@ -451,6 +465,8 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                     sizeFor: longest,
                     shuffleTick: _shuffleTick,
                     formed: board.formedIn(board.words[i].id),
+                    hintTile: game.lastHint?.rowId == board.words[i].id ? game.lastHint!.tile : null,
+                    hintTick: game.lastHint?.rowId == board.words[i].id ? game.lastHint!.tick : 0,
                     enabled: !game.completed,
                     onTap: (x) => _act(board.words[i].id, () => game.tapLetter(board.words[i].id, x)),
                     onDrag: (a, b) => _act(board.words[i].id, () => game.dragLetter(board.words[i].id, a, b)),
@@ -506,8 +522,12 @@ class _WordRow extends StatefulWidget {
     required this.onTap,
     required this.onDrag,
     required this.onFocus,
+    this.hintTile,
+    this.hintTick = 0,
   });
 
+  final int? hintTile;
+  final int hintTick;
   final int number;
   final RowState row;
   final Color color;
@@ -574,6 +594,8 @@ class _WordRowState extends State<_WordRow> with SingleTickerProviderStateMixin 
                   groups: [widget.row.length],
                   sizeFor: widget.sizeFor,
                   shuffleTick: widget.shuffleTick,
+                  hintTile: widget.hintTile,
+                  hintTick: widget.hintTick,
                   formed: widget.formed,
                   enabled: widget.enabled,
                   showCursor: active,
@@ -783,10 +805,11 @@ class _PagerBar extends StatelessWidget {
 }
 
 class _ActionBar extends StatelessWidget {
-  const _ActionBar({required this.game, required this.target, required this.onResults});
+  const _ActionBar({required this.game, required this.target, required this.onResults, required this.onHint});
   final GameController game;
   final int? target;
   final VoidCallback onResults;
+  final void Function(int rowId) onHint;
 
   @override
   Widget build(BuildContext context) {
@@ -809,6 +832,13 @@ class _ActionBar extends StatelessWidget {
         children: [
           _GameButton(icon: Icons.undo_rounded, label: 'Undo', onPressed: game.board.canUndo ? game.undo : null),
           _GameButton(
+            icon: Icons.lightbulb_rounded,
+            label: 'Hint',
+            // Its own buzz and chime: no button tick on top.
+            quiet: true,
+            onPressed: t == null || game.hinting ? null : () => onHint(t),
+          ),
+          _GameButton(
             icon: Icons.shuffle_rounded,
             label: 'Mix',
             onPressed: t == null ? null : () => game.shuffleRow(t),
@@ -826,10 +856,13 @@ class _ActionBar extends StatelessWidget {
 
 /// A chunky rounded key with its label underneath, that sinks when pressed.
 class _GameButton extends StatefulWidget {
-  const _GameButton({required this.icon, required this.label, required this.onPressed});
+  const _GameButton({required this.icon, required this.label, required this.onPressed, this.quiet = false});
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
+
+  /// No tick of its own: the action brings its own feedback.
+  final bool quiet;
 
   @override
   State<_GameButton> createState() => _GameButtonState();
@@ -855,7 +888,7 @@ class _GameButtonState extends State<_GameButton> {
         onTapUp: on
             ? (_) {
                 setState(() => _down = false);
-                HapticFeedback.selectionClick();
+                if (!widget.quiet) HapticFeedback.selectionClick();
                 widget.onPressed!();
               }
             : null,

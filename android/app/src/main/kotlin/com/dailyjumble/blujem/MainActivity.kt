@@ -22,6 +22,8 @@ class MainActivity : FlutterActivity() {
             val (timings, amplitudes) = when (call.method) {
                 "shuffle" -> longArrayOf(0, 90, 70, 140) to intArrayOf(0, 255, 0, 255)
                 "win" -> longArrayOf(0, 110, 80, 110, 80, 320) to intArrayOf(0, 255, 0, 255, 0, 255)
+                // A hint: short, pause, short, and softer than the shake.
+                "hint" -> longArrayOf(0, 45, 70, 45) to intArrayOf(0, 170, 0, 140)
                 else -> return@setMethodCallHandler result.notImplemented()
             }
             val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

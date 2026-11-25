@@ -12,7 +12,7 @@ import '../models/puzzle.dart';
 import '../models/records.dart';
 import 'board.dart';
 
-enum GameSound { key, solved, complete, start, shuffle, timeout }
+enum GameSound { key, solved, complete, start, shuffle, timeout, hint }
 
 enum RunStatus { notStarted, inProgress, completed }
 
@@ -59,6 +59,9 @@ class GameController extends ChangeNotifier {
   /// Called when a hint needs the answers and the server could not be reached.
   void Function()? onHintUnavailable;
 
+  /// Called when a guest taps Hint: the answers come only to a signed-in player.
+  void Function()? onHintNeedsSignIn;
+
   late Puzzle puzzle;
   late Board board;
 
@@ -74,6 +77,21 @@ class GameController extends ChangeNotifier {
   int? elapsedAtCompletion;
   int hintsUsed = 0;
   Map<int, RowHints> rowHints = const {};
+
+  /// Letters the Hint button placed, per row: each counts as one hint on
+  /// that word's points, as the server's rules already have it.
+  Map<int, int> letterHints = const {};
+
+  /// The latest placed hint, for the row to animate: which row, which tile
+  /// (its pool index) and a count that goes up with every hint.
+  ({int rowId, int tile, int tick})? lastHint;
+
+  /// While a hint is being fetched or its letter is moving: further taps wait.
+  bool hinting = false;
+  Timer? _hintSettle;
+
+  /// How long a hinted letter takes to glide into place.
+  static const hintMove = Duration(milliseconds: 380);
 
   /// When the server's points clock started, by this device's clock; null when
   /// the run earns no points. Unlike the countdown it never pauses.
@@ -177,6 +195,10 @@ class GameController extends ChangeNotifier {
     _expiresAt = _pointsOrigin = elapsedAtCompletion = null;
     pointsSeconds = hintsUsed = 0;
     rowHints = const {};
+    letterHints = const {};
+    lastHint = null;
+    hinting = false;
+    _hintSettle?.cancel();
     score = null;
     _startCall = null;
     answersShown = false;
@@ -395,7 +417,7 @@ class GameController extends ChangeNotifier {
     _play(next, revealedFinal: rowId == finalRowId);
   }
 
-  void _play(Board next, {bool sound = false, bool revealedFinal = false}) {
+  void _play(Board next, {bool sound = false, bool revealedFinal = false, bool afterHint = false}) {
     if (!started || completed || identical(next, board)) return;
     final solvedBefore = board.solvedCount + (board.finalRow.solved ? 1 : 0);
     board = next;
@@ -403,7 +425,15 @@ class GameController extends ChangeNotifier {
     if (board.finalRow.solved) {
       _finish(revealed: revealedFinal);
     } else if (solvedNow > solvedBefore) {
-      onSound?.call(GameSound.solved);
+      if (afterHint) {
+        // The hint's chime first; the word's own once its letter has landed.
+        final id = puzzle.id;
+        Timer(hintMove, () {
+          if (puzzle.id == id) onSound?.call(GameSound.solved);
+        });
+      } else {
+        onSound?.call(GameSound.solved);
+      }
     } else if (sound) {
       onSound?.call(GameSound.key);
     }
@@ -450,7 +480,10 @@ class GameController extends ChangeNotifier {
     scores
         .submit(
           id,
-          [for (final w in board.words) PlayedWord(w.letters, hintsUsed: hintsFor(w.id).shown, revealed: w.revealed)],
+          [
+            for (final w in board.words)
+              PlayedWord(w.letters, hintsUsed: hintsFor(w.id).shown + (letterHints[w.id] ?? 0), revealed: w.revealed),
+          ],
           board.finalRow.letters,
           finalRevealed: revealed,
         )
@@ -463,6 +496,52 @@ class GameController extends ChangeNotifier {
   }
 
   // ------------------------------------------------------------- hints
+
+  /// The Hint button: one right letter glides into row [rowId] — under the
+  /// cursor, or the next wrong square — and stays fixed there. Counts as a
+  /// hint only when a letter actually moved. Taps while one is under way are
+  /// ignored.
+  Future<void> hintLetter(int rowId) async {
+    if (!started || completed || hinting || board.row(rowId)?.solved != false) return;
+    if (!scores.available && puzzle.answersHidden) {
+      onHintNeedsSignIn?.call();
+      return;
+    }
+    hinting = true;
+    notifyListeners();
+    final id = puzzle.id;
+    var placed = false;
+    try {
+      await _startCall;
+      if (!await loadAnswers()) {
+        if (puzzle.id == id) onHintUnavailable?.call();
+        return;
+      }
+      if (puzzle.id != id || !started || completed) return;
+      final hint = board.placeHint(rowId);
+      if (hint == null) return;
+      placed = true;
+      hintsUsed++;
+      letterHints = {...letterHints, rowId: (letterHints[rowId] ?? 0) + 1};
+      lastHint = (rowId: rowId, tile: hint.tile, tick: (lastHint?.tick ?? 0) + 1);
+      onSound?.call(GameSound.hint);
+      _play(hint.board, afterHint: true);
+    } finally {
+      if (puzzle.id == id) {
+        if (placed) {
+          // Held until the letter has settled, so a double tap is one hint.
+          _hintSettle?.cancel();
+          _hintSettle = Timer(hintMove, () {
+            hinting = false;
+            notifyListeners();
+          });
+        } else {
+          hinting = false;
+          notifyListeners();
+        }
+      }
+    }
+  }
 
   /// The next hint for [rowId], fetched without holding up the board.
   Future<void> requestHint(int rowId) async {
@@ -517,6 +596,7 @@ class GameController extends ChangeNotifier {
     _ticker?.cancel();
     _waitingCheck?.cancel();
     _noticeTimer?.cancel();
+    _hintSettle?.cancel();
     super.dispose();
   }
 }

@@ -32,9 +32,14 @@ class RowState {
     this.revealed = false,
     this.answerHash = '',
     this.puzzleId = '',
+    this.fixed = const {},
   });
 
   final int id;
+
+  /// Squares a hint put right: their letters stay put through taps, drags,
+  /// Mix, Reset and a shake, and Undo never takes them back.
+  final Set<int> fixed;
 
   /// Letters only, upper case. Empty while the server keeps the answers:
   /// the row is then checked against [answerHash].
@@ -72,6 +77,7 @@ class RowState {
     bool? revealed,
     String? answer,
     String? answerHash,
+    Set<int>? fixed,
   }) => RowState(
     id: id,
     answer: answer ?? this.answer,
@@ -82,6 +88,7 @@ class RowState {
     revealed: revealed ?? this.revealed,
     answerHash: answerHash ?? this.answerHash,
     puzzleId: puzzleId,
+    fixed: fixed ?? this.fixed,
   );
 
   /// Whether [text] is the answer, by the answer itself or by its hash.
@@ -89,6 +96,18 @@ class RowState {
     if (answer.isNotEmpty) return text == answer;
     if (answerHash.isEmpty || text.contains(' ')) return false;
     return answerHash == answerHashOf(puzzleId, text, isFinal: isFinal);
+  }
+
+  /// [order] with the letter in square [from] moved to [to], the letters
+  /// between sliding along, and the [fixed] squares left where they are.
+  List<int> movedAround(int from, int to) => order.movedAround(from, to, fixed);
+
+  /// The first square from [i] on that a tap can fill: past the fixed ones.
+  int nextOpen(int i) {
+    while (i < length && fixed.contains(i)) {
+      i++;
+    }
+    return i;
   }
 
   /// This row with [order], solved the moment it spells the answer.
@@ -235,7 +254,9 @@ class Board {
     final r = row(id);
     if (r == null || r.solved || from == to || r.isBlank) return this;
     if (from < 0 || to < 0 || from >= r.length || to >= r.length) return this;
-    return _replace(r.checked(r.order.moved(from, to)), pushUndo: r);
+    final order = r.movedAround(from, to);
+    if (_same(order, r.order)) return this;
+    return _replace(r.checked(order), pushUndo: r);
   }
 
   /// Tap-to-form: the tapped letter joins the front of the row, after those
@@ -244,17 +265,19 @@ class Board {
   Board form(int id, int index) {
     final r = row(id);
     if (r == null || r.solved || index < 0 || index >= r.length) return this;
-    if (r.letters[index] == ' ') return this;
+    if (r.letters[index] == ' ' || r.fixed.contains(index)) return this;
 
-    final done = min(formedIn(id), r.formable);
+    final done = r.nextOpen(min(formedIn(id), r.formable));
     if (index < done) return _withFormed(id, index);
 
     final moved = index == done ? this : move(id, index, done);
     final after = moved.row(id)!;
     if (after.solved) return moved;
     final open = after.formable;
-    // With one letter left, it can only go in the last square.
-    final next = open == after.length && done + 1 >= after.length - 1 ? after.length : done + 1;
+    var next = after.nextOpen(done + 1);
+    // With one letter left, it can only go in the last open square.
+    final left = [for (var i = next; i < after.length; i++) i].where((i) => !after.fixed.contains(i)).length;
+    if (open == after.length && left <= 1) next = after.length;
     return moved._withFormed(id, min(next, open));
   }
 
@@ -272,9 +295,15 @@ class Board {
   Board reset(int id) {
     final r = row(id);
     if (r == null || r.solved) return this;
-    final identity = List.generate(r.length, (i) => i);
-    if (_same(r.order, identity)) return _unform(id);
-    return _replace(r.checked(identity), pushUndo: r)._unform(id);
+    // As printed, but for the squares a hint fixed.
+    final kept = {for (final p in r.fixed) r.order[p]};
+    final rest = [
+      for (var i = 0; i < r.length; i++)
+        if (!kept.contains(i)) i,
+    ].iterator;
+    final start = [for (var p = 0; p < r.length; p++) r.fixed.contains(p) ? r.order[p] : (rest..moveNext()).current];
+    if (_same(r.order, start)) return _unform(id);
+    return _replace(r.checked(start), pushUndo: r)._unform(id);
   }
 
   /// A fresh jumble of one row, never back to the same spelling when the
@@ -282,8 +311,18 @@ class Board {
   Board shuffle(int id, Random random) {
     final r = row(id);
     if (r == null || r.solved || r.isBlank) return this;
+    // Only the letters a hint has not fixed are mixed.
+    final open = [
+      for (var p = 0; p < r.length; p++)
+        if (!r.fixed.contains(p)) p,
+    ];
+    if (open.length < 2) return this;
     for (var attempt = 0; attempt < 20; attempt++) {
-      final next = [...r.order]..shuffle(random);
+      final mixed = [for (final p in open) r.order[p]]..shuffle(random);
+      final next = [...r.order];
+      for (var k = 0; k < open.length; k++) {
+        next[open[k]] = mixed[k];
+      }
       if (next.map((i) => r.pool[i]).join() != r.letters) {
         return _replace(r.checked(next), pushUndo: r)._unform(id);
       }
@@ -318,6 +357,62 @@ class Board {
       return restored._replace(r.checked(step.order));
     }
     return Board(words: words, finalRow: finalRow, follows: follows, formed: formed);
+  }
+
+  /// One letter put right in row [id], for the Hint button: the square under
+  /// the cursor, or the next one from there that is wrong (around to the
+  /// start if need be). The right letter is taken out of its square and put
+  /// in, the letters between sliding along (never a swap), and the square is
+  /// fixed. The cursor moves on to the next square still wrong. Null when
+  /// nothing can be placed: solved, the answer not here, or no right letter
+  /// free to move.
+  ({Board board, int tile, int square})? placeHint(int id) {
+    final r = row(id);
+    if (r == null || r.solved || r.answer.length != r.length) return null;
+    final letters = r.letters, answer = r.answer;
+    bool wrong(String spelled, int p) => !r.fixed.contains(p) && spelled[p] != answer[p];
+
+    final cursor = r.nextOpen(min(formedIn(id), r.formable)).clamp(0, r.length);
+    for (final square in [for (var i = cursor; i < r.length; i++) i, for (var i = 0; i < cursor; i++) i]) {
+      if (!wrong(letters, square)) continue;
+      // The right letter, from a square where it is not already right, and
+      // the nearest such, so the fewest letters slide.
+      final from =
+          [
+            for (var q = 0; q < r.length; q++)
+              if (q != square && !r.fixed.contains(q) && letters[q] == answer[square]) q,
+          ]..sort((a, b) {
+            final byPlace = (letters[a] == answer[a] ? 1 : 0) - (letters[b] == answer[b] ? 1 : 0);
+            return byPlace != 0 ? byPlace : (a - square).abs() - (b - square).abs();
+          });
+      if (from.isEmpty) continue;
+
+      final order = r.order.movedAround(from.first, square, r.fixed);
+      final placed = r.copyWith(fixed: {...r.fixed, square}).checked(order);
+      final after = _replace(placed);
+      // A hint is help asked for: Undo does not take it back, nor any move
+      // on this row from before it.
+      final board = Board(
+        words: after.words,
+        finalRow: after.finalRow,
+        follows: follows,
+        formed: after.formed,
+        undo: [
+          for (final s in after.undo)
+            if (s.rowId != id) s,
+        ],
+      );
+      final spelled = placed.letters;
+      var next = r.length;
+      for (final q in [for (var i = square + 1; i < r.length; i++) i, for (var i = 0; i < square; i++) i]) {
+        if (!placed.fixed.contains(q) && spelled[q] != answer[q]) {
+          next = q;
+          break;
+        }
+      }
+      return (board: board._withFormed(id, next), tile: r.order[from.first], square: square);
+    }
+    return null;
   }
 
   /// Shows a word's answer: solved, marked revealed, and locked.
@@ -355,8 +450,11 @@ class Board {
     return Board(words: nextWords, finalRow: nextFinal, follows: follows, formed: formed, undo: steps);
   }
 
-  Board _withFormed(int id, int count) =>
-      Board(words: words, finalRow: finalRow, follows: follows, formed: {...formed, id: max(0, count)}, undo: undo);
+  Board _withFormed(int id, int count) {
+    // The cursor never rests on a square a hint fixed.
+    final at = row(id)?.nextOpen(max(0, count)) ?? max(0, count);
+    return Board(words: words, finalRow: finalRow, follows: follows, formed: {...formed, id: at}, undo: undo);
+  }
 
   Board _unform(int id) => formed.containsKey(id)
       ? Board(words: words, finalRow: finalRow, follows: follows, formed: Map.of(formed)..remove(id), undo: undo)
@@ -372,6 +470,25 @@ extension MovedList<T> on List<T> {
     if (from < 0 || to < 0 || from >= length || to >= length || from == to) return this;
     final out = [...this];
     out.insert(to, out.removeAt(from));
+    return out;
+  }
+}
+
+extension MovedAround on List<int> {
+  /// [moved], with the squares in [fixed] left where they are: the others
+  /// slide around them. A move from or onto a fixed square does nothing.
+  List<int> movedAround(int from, int to, Set<int> fixed) {
+    if (fixed.isEmpty) return moved(from, to);
+    if (fixed.contains(from) || fixed.contains(to)) return this;
+    final open = [
+      for (var p = 0; p < length; p++)
+        if (!fixed.contains(p)) p,
+    ];
+    final tiles = [for (final p in open) this[p]].moved(open.indexOf(from), open.indexOf(to));
+    final out = [...this];
+    for (var k = 0; k < open.length; k++) {
+      out[open[k]] = tiles[k];
+    }
     return out;
   }
 }

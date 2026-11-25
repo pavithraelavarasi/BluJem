@@ -86,3 +86,10 @@ write('sfx_complete', mix(
 write('sfx_start', mix(0.55, (0, bell(note('G4'), 0.35), 0.8), (0.1, bell(note('D5'), 0.45), 1.0)), peak=0.55)
 write('sfx_shuffle', swish(0.32), peak=0.4)
 write('sfx_timeout', mix(0.8, (0, bell(note('E4'), 0.4, decay=5), 0.9), (0.18, bell(note('C4'), 0.6, decay=4), 1.0)), peak=0.55)
+write('sfx_hint', mix(
+    0.6,
+    (0.00, bell(note('A5'), 0.30, decay=9), 0.55),
+    (0.07, bell(note('C6'), 0.30, decay=9), 0.6),
+    (0.14, bell(note('E6'), 0.45, decay=7), 0.75),
+    (0.14, bell(note('A6'), 0.40, decay=9), 0.2),
+), peak=0.42)

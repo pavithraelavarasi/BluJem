@@ -161,6 +161,8 @@ class TileRow extends StatefulWidget {
     this.onMiss,
     this.shuffleTick = 0,
     this.lineBreaks = const [],
+    this.hintTile,
+    this.hintTick = 0,
   });
 
   final RowState row;
@@ -199,6 +201,15 @@ class TileRow extends StatefulWidget {
   /// slide slowly to their new places, so the reshuffle is seen.
   final int shuffleTick;
 
+  /// The tile (pool index) a hint just placed in this row, and a count that
+  /// goes up with each hint: the tile lifts, glows blue, glides into its
+  /// square and settles.
+  final int? hintTile;
+  final int hintTick;
+
+  /// How long a hinted letter glides; the game holds the Hint button as long.
+  static const hintMove = Duration(milliseconds: 380);
+
   @override
   State<TileRow> createState() => _TileRowState();
 }
@@ -220,6 +231,10 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
     lowerBound: 0.4,
   );
 
+  /// A hinted letter on its way: lifted and glowing until it lands.
+  late final AnimationController _hintGlow = AnimationController(vsync: this, duration: TileRow.hintMove);
+  int? _hintPool;
+
   @override
   void initState() {
     super.initState();
@@ -238,11 +253,18 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
         });
       }
     }
+    if (widget.hintTick != old.hintTick && widget.hintTile != null) {
+      _hintPool = widget.hintTile;
+      _hintGlow.forward(from: 0).whenComplete(() {
+        if (mounted) setState(() => _hintPool = null);
+      });
+    }
     _syncBlink();
   }
 
   @override
   void dispose() {
+    _hintGlow.dispose();
     _blink.dispose();
     _jiggle.dispose();
     super.dispose();
@@ -303,11 +325,17 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
             pos = Offset(_finger!.dx - layout.size / 2, dy);
           }
           final letter = widget.row.pool[poolIndex];
+          final hinting = _hintPool != null;
+          final hinted = poolIndex == _hintPool;
           tiles.add(
             AnimatedPositioned(
               key: ValueKey(poolIndex),
-              duration: dragging ? Duration.zero : Duration(milliseconds: _gliding ? 480 : 180),
-              curve: _gliding ? Curves.easeOutBack : Curves.easeOutCubic,
+              // A hint's letter and the ones it pushes along move together, slower
+              // than a tap's, so the help is seen.
+              duration: dragging
+                  ? Duration.zero
+                  : (hinting ? TileRow.hintMove : Duration(milliseconds: _gliding ? 480 : 180)),
+              curve: _gliding || hinted ? Curves.easeOutBack : Curves.easeOutCubic,
               left: pos.dx,
               top: pos.dy,
               width: layout.size,
@@ -319,7 +347,9 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
                 circled: square < widget.row.circles.length && widget.row.circles[square],
                 blink: _blinking && _dragFrom == null && square == widget.formed ? _blink : null,
                 solved: widget.row.solved,
-                lifted: dragging,
+                lifted: dragging || hinted,
+                glow: hinted,
+                fixed: widget.row.fixed.contains(square) && !widget.row.solved,
                 pressed: _pressed == square && _dragFrom == null,
               ),
             ),
@@ -331,7 +361,8 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
 
         void onStart(Offset local) {
           final i = layout.nearest(local);
-          if (letters[i] == ' ') return;
+          // A letter a hint put right stays where it is.
+          if (letters[i] == ' ' || widget.row.fixed.contains(i)) return;
           setState(() {
             _dragFrom = i;
             _dragTo = i;
@@ -382,7 +413,7 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
             for (var i = 0; i < letters.length; i++)
               letters[i] == ' '
                   ? 'blank'
-                  : '${letters[i]}${i < widget.formed ? ', formed' : (i == widget.formed && _blinking ? ', next' : '')}',
+                  : '${letters[i]}${widget.row.fixed.contains(i) ? ', fixed by a hint' : (i < widget.formed ? ', formed' : (i == widget.formed && _blinking ? ', next' : ''))}',
           ].join(', '),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -399,7 +430,9 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
                 ? (d) {
                     setState(() => _pressed = null);
                     final i = layout.nearest(d.localPosition);
-                    if (letters[i] == ' ' || !layout.hitsTile(d.localPosition, slack: layout.size * 0.15)) {
+                    if (letters[i] == ' ' ||
+                        widget.row.fixed.contains(i) ||
+                        !layout.hitsTile(d.localPosition, slack: layout.size * 0.15)) {
                       widget.onMiss?.call();
                       return;
                     }
@@ -435,7 +468,7 @@ class _TileRowState extends State<TileRow> with TickerProviderStateMixin {
   List<int> _previewOrder() {
     final from = _dragFrom, to = _dragTo;
     if (from == null || to == null) return widget.row.order;
-    return widget.row.order.moved(from, to);
+    return widget.row.movedAround(from, to);
   }
 
   void _endDrag({required bool commit}) {
@@ -487,9 +520,17 @@ class _Tile extends StatelessWidget {
     required this.solved,
     required this.lifted,
     required this.pressed,
+    this.glow = false,
+    this.fixed = false,
   });
 
   final String letter;
+
+  /// A hint's letter on its way: a soft BluJem-blue glow, only while it moves.
+  final bool glow;
+
+  /// Put right by a hint: a small mark says it will not move.
+  final bool fixed;
   final double size;
   final Color color;
   final bool circled;
@@ -535,6 +576,7 @@ class _Tile extends StatelessWidget {
                   BoxShadow(color: edge, offset: Offset(0, depth)),
                   if (lifted)
                     BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 12, offset: const Offset(0, 8)),
+                  if (glow) BoxShadow(color: p.cursor.withValues(alpha: 0.55), blurRadius: 16, spreadRadius: 2),
                 ],
         ),
         child: Stack(
@@ -548,6 +590,16 @@ class _Tile extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: p.ink.withValues(alpha: 0.75), width: 1.8),
+                ),
+              ),
+            if (fixed)
+              Positioned(
+                top: size * 0.09,
+                right: size * 0.09,
+                child: Container(
+                  width: size * 0.11,
+                  height: size * 0.11,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: p.inkSoft.withValues(alpha: 0.7)),
                 ),
               ),
             if (!empty)

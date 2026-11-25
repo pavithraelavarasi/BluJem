@@ -57,6 +57,7 @@ class GameFeedback extends ChangeNotifier {
     GameSound.start: ('sounds/sfx_start.wav', 0.9),
     GameSound.shuffle: ('sounds/sfx_shuffle.wav', 0.8),
     GameSound.timeout: ('sounds/sfx_timeout.wav', 0.9),
+    GameSound.hint: ('sounds/sfx_hint.wav', 0.8),
   };
 
   /// Loads every sound once, so the first play of each starts at once
@@ -102,6 +103,8 @@ class GameFeedback extends ChangeNotifier {
         HapticFeedback.mediumImpact();
       case GameSound.complete:
         unawaited(winBuzz());
+      case GameSound.hint:
+        unawaited(hintBuzz());
       default:
         break;
     }
@@ -126,6 +129,23 @@ class GameFeedback extends ChangeNotifier {
     }
     super.dispose();
   }
+}
+
+/// The hint buzz: two short, soft pulses — not a tap's tick, not the
+/// shake's strong double. Android drives the vibrator itself, the same as
+/// the shuffle; elsewhere, two system taps.
+Future<void> hintBuzz() async {
+  if (!kIsWeb && Platform.isAndroid) {
+    try {
+      await const MethodChannel('blujem/haptics').invokeMethod('hint');
+      return;
+    } catch (_) {
+      // Fall through to the system haptics.
+    }
+  }
+  await HapticFeedback.mediumImpact();
+  await Future<void>.delayed(const Duration(milliseconds: 90));
+  await HapticFeedback.lightImpact();
 }
 
 /// The reshuffle buzz: a strong double vibration you notice in the hand.
