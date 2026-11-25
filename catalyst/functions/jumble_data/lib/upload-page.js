@@ -1,8 +1,9 @@
 'use strict';
 
 /**
- * The upload page the admin opens on a computer:
- * GET /server/jumble_data/execute/upload. They sign in with their BluJem admin
+ * The admin page the admin opens on a computer or phone:
+ * GET /server/jumble_data/execute/admin (or the older …/upload). After
+ * signing in it shows two ways in: Upload puzzles and Leaderboard. They sign in with their BluJem admin
  * account (jumble_auth login), and the page sends each puzzle to
  * puzzles/upload. The page holds no secrets; every check that counts is on
  * the server, which refuses anyone who is not an admin.
@@ -13,7 +14,7 @@ function uploadPage() {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BluJem Upload</title>
+<title>BluJem Admin</title>
 <style>
 	:root { --bg: #faf6ee; --card: #fffdf8; --ink: #1d1b16; --soft: #5c5648; --line: #e3dccb; --accent: #1f5fae; --bad: #b3261e; --good: #2e7d32; }
 	@media (prefers-color-scheme: dark) {
@@ -44,7 +45,19 @@ function uploadPage() {
 	.words input { font-family: ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; margin-bottom: 6px; }
 	table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 	td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
-	.hidden { display: none; }
+	.hidden { display: none !important; }
+	.tiles2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+	@media (max-width: 520px) { .tiles2 { grid-template-columns: 1fr; } }
+	button.tile2 { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 22px 20px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; font-weight: 400; }
+	button.tile2:hover, button.tile2:focus-visible { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent) inset; }
+	button.tile2 b { font-size: 1.15rem; color: var(--accent); }
+	button.tile2 .ico { font-size: 1.6rem; color: var(--accent); }
+	button.back { margin: 0 0 16px; padding: 6px 12px; }
+	.thumbs { display: flex; gap: 6px; }
+	.thumbs img { height: 64px; width: auto; max-width: 96px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: zoom-in; }
+	.thumbs .none { color: var(--soft); font-size: 0.85rem; }
+	#viewer { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; cursor: zoom-out; }
+	#viewer img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; background: #fff; }
 	.num { text-align: right; font-variant-numeric: tabular-nums; }
 	.scroll { overflow-x: auto; }
 	pre { background: var(--bg); padding: 10px; border-radius: 8px; overflow-x: auto; }
@@ -62,8 +75,19 @@ function uploadPage() {
 </head>
 <body>
 <main>
-	<h1>BluJem upload</h1>
-	<p class="lead">Upload a puzzle for any date. Every day, Sunday included, has three: morning (9:00 AM), afternoon (3:00 PM) and night (9:00 PM), 4 words each. The morning puzzle opens the moment you publish it, but not before 9:00 AM. The afternoon and night puzzles open at their time. Players get a notification when each opens. India time.</p>
+	<h1>BluJem Admin</h1>
+
+	<section id="home" class="hidden">
+		<div class="tiles2">
+			<button class="tile2" id="goUpload"><span class="ico">&#x2B06;&#xFE0E;</span><b>Upload puzzles</b><span class="hint">Add a puzzle, check drafts, see and edit what's uploaded.</span></button>
+			<button class="tile2" id="goBoard"><span class="ico">&#x1F3C6;&#xFE0E;</span><b>Leaderboard</b><span class="hint">Every player: since when, games played and total score.</span></button>
+		</div>
+		<button class="plain" id="signOutBtn">Sign out</button>
+	</section>
+
+	<div id="backBar" class="hidden"><button class="plain back" id="backBtn">&larr; Admin home</button></div>
+
+	<p class="lead hidden" id="uploadLead">Upload a puzzle for any date. Every day, Sunday included, has three: morning (9:00 AM), afternoon (3:00 PM) and night (9:00 PM), 4 words each. The morning puzzle opens the moment you publish it, but not before 9:00 AM. The afternoon and night puzzles open at their time. Players get a notification when each opens. India time.</p>
 
 	<section id="signin">
 		<h2>Sign in</h2>
@@ -115,7 +139,8 @@ function uploadPage() {
 
 	<section id="upcoming" class="hidden">
 		<h2>Uploaded puzzles</h2>
-		<table><thead><tr><th>Date</th><th>Slot</th><th>Goes live</th><th>Status</th><th></th></tr></thead><tbody id="list"></tbody></table>
+		<div class="scroll"><table><thead><tr><th>Pictures</th><th>Date</th><th>Slot</th><th>Goes live</th><th>Status</th><th></th></tr></thead><tbody id="list"></tbody></table></div>
+		<p class="hint">Tap a picture to see it full size.</p>
 		<div class="msg" id="listMsg"></div>
 	</section>
 
@@ -139,6 +164,7 @@ function uploadPage() {
 		<div class="msg" id="draftMsg"></div>
 	</section>
 </main>
+<div id="viewer" class="hidden"><img id="viewerImg" alt="Full-size picture"></div>
 <script>
 (() => {
 	const AUTH = '/server/jumble_auth/execute/';
@@ -161,9 +187,37 @@ function uploadPage() {
 
 	function show(el, text, ok) { el.textContent = text; el.className = 'msg ' + (ok ? 'good' : 'bad'); }
 
-	function signOut() { token = ''; sessionStorage.removeItem('blujemToken'); $('signin').classList.remove('hidden'); $('form').classList.add('hidden'); $('upcoming').classList.add('hidden'); $('players').classList.add('hidden'); $('draft').classList.add('hidden'); }
+	// Three screens after sign-in: the Admin home with its two buttons, Upload
+	// and Leaderboard. The address (#upload, #leaderboard) says which, so the
+	// browser's back button returns to the home.
+	const VIEWS = { home: ['home'], upload: ['uploadLead', 'form', 'upcoming'], leaderboard: ['players'] };
+	const ALL = ['signin', 'home', 'backBar', 'uploadLead', 'form', 'upcoming', 'draft', 'players'];
+	let signedInNow = false;
 
-	function signedIn() { $('signin').classList.add('hidden'); $('form').classList.remove('hidden'); $('upcoming').classList.remove('hidden'); $('players').classList.remove('hidden'); loadList(); loadPlayers(); }
+	function showView() {
+		if (!signedInNow) return;
+		const view = VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : 'home';
+		ALL.forEach((id) => $(id).classList.add('hidden'));
+		VIEWS[view].forEach((id) => $(id).classList.remove('hidden'));
+		if (view !== 'home') $('backBar').classList.remove('hidden');
+		if (view === 'upload') loadList();
+		if (view === 'leaderboard') loadPlayers();
+		document.title = view === 'upload' ? 'Upload · BluJem Admin' : view === 'leaderboard' ? 'Leaderboard · BluJem Admin' : 'BluJem Admin';
+		window.scrollTo(0, 0);
+	}
+	window.addEventListener('hashchange', showView);
+	$('goUpload').onclick = () => { location.hash = 'upload'; };
+	$('goBoard').onclick = () => { location.hash = 'leaderboard'; };
+	$('backBtn').onclick = () => { location.hash = ''; };
+
+	function signOut() {
+		token = ''; signedInNow = false; sessionStorage.removeItem('blujemToken');
+		ALL.forEach((id) => $(id).classList.add('hidden'));
+		$('signin').classList.remove('hidden');
+	}
+	$('signOutBtn').onclick = () => { signOut(); history.replaceState(null, '', location.pathname); };
+
+	function signedIn() { signedInNow = true; showView(); }
 
 	// Google or Zoho: Catalyst's own sign-in page checks the account (no
 	// password ever reaches this page) and sends the browser back here; its
@@ -472,12 +526,43 @@ function uploadPage() {
 				if (!p.published && p.finalAnswer) { drafts[p.id] = p; status = '<b>Draft</b> <button class="plain" data-check="' + esc(p.id) + '" style="margin:0;padding:4px 10px">Check</button>'; }
 				listed[p.id] = p;
 				const edit = editable(p) ? '<button class="plain" data-edit="' + esc(p.id) + '" style="margin:0;padding:4px 10px">Edit</button>' : '';
-				return '<tr><td>' + esc(p.publishDate) + '</td><td>' + esc(SLOT_NAMES[p.slot] || p.slot) + '</td><td>' + when(p.publishAt) + '</td><td>' + status + '</td><td>' + edit + '</td></tr>';
-			}).join('') : '<tr><td colspan="5">Nothing uploaded from today on.</td></tr>';
+				return '<tr><td><div class="thumbs" data-thumbs="' + esc(p.id) + '"><span class="none">…</span></div></td><td>' + esc(p.publishDate) + '</td><td>' + esc(SLOT_NAMES[p.slot] || p.slot) + '</td><td>' + when(p.publishAt) + '</td><td>' + status + '</td><td>' + edit + '</td></tr>';
+			}).join('') : '<tr><td colspan="6">Nothing uploaded from today on.</td></tr>';
+			document.querySelectorAll('[data-thumbs]').forEach((box) => thumbs(listed[box.dataset.thumbs], box));
 			document.querySelectorAll('[data-check]').forEach((b) => { b.onclick = () => openDraft(drafts[b.dataset.check]); });
 			document.querySelectorAll('[data-edit]').forEach((b) => { b.onclick = () => startEdit(listed[b.dataset.edit]); });
-		} catch (e) { $('list').innerHTML = '<tr><td colspan="4" class="bad">' + esc(e.message) + '</td></tr>'; }
+		} catch (e) { $('list').innerHTML = '<tr><td colspan="6" class="bad">' + esc(e.message) + '</td></tr>'; }
 	}
+
+	// The cartoon and the wordless cartoon of an uploaded puzzle, small, each
+	// opening full size when tapped. Loaded one row at a time, after the list.
+	const pictures = {};
+	async function pictureUrl(key) {
+		if (!key) return '';
+		if (key in pictures) return pictures[key];
+		try {
+			const res = await fetch(DATA + 'puzzles/sheet', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Jumble-Token': token }, body: JSON.stringify({ key }) });
+			pictures[key] = res.ok ? URL.createObjectURL(await res.blob()) : '';
+		} catch (e) { return ''; }
+		return pictures[key];
+	}
+	async function thumbs(p, box) {
+		if (!p) return;
+		const sheet = String(p.sheetKey || '');
+		const keys = [['Cartoon', sheet], ['Wordless', sheet ? sheet.replace(/[.][^./]+$/, '') + '-wordless.png' : '']];
+		const imgs = [];
+		for (const [name, key] of keys) {
+			const url = await pictureUrl(key);
+			if (!url) continue;
+			const img = document.createElement('img');
+			img.src = url; img.alt = name; img.title = name + ' — tap to enlarge';
+			img.onclick = () => { $('viewerImg').src = url; $('viewer').classList.remove('hidden'); };
+			imgs.push(img);
+		}
+		box.replaceChildren(...(imgs.length ? imgs : [Object.assign(document.createElement('span'), { className: 'none', textContent: 'No picture' })]));
+	}
+	$('viewer').onclick = () => { $('viewer').classList.add('hidden'); $('viewerImg').removeAttribute('src'); };
+	document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('viewer').click(); });
 
 	let openId = '';
 	async function openDraft(p) {

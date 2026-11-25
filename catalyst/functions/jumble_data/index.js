@@ -1058,7 +1058,7 @@ module.exports = async (req, res) => {
 			return res.end();
 		}
 		const path = new URL(req.url, `https://${req.headers.host || 'localhost'}`).pathname;
-		if (req.method === 'GET' && /\/upload\/?$/.test(path)) {
+		if (req.method === 'GET' && /\/(admin|upload)\/?$/.test(path)) {
 			res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
 			return res.end(uploadPage());
 		}

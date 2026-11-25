@@ -104,7 +104,7 @@ footer { color: var(--ink-soft); font-size: 13px; }
       <div class="sec-head"><span class="layer">How a puzzle flows</span><h2>From the admin to the player</h2></div>
       <div class="flow-box">
         <div class="flow">
-          <div class="step"><b>Admin uploads</b><span>Upload web page: cartoon, wordless cartoon, letters</span></div>
+          <div class="step"><b>Admin uploads</b><span>Admin web page: cartoon, wordless cartoon, letters</span></div>
           <div class="arrow">→</div>
           <div class="step"><b>jumble_data</b><span>Checks the letters, saves the row, stores pictures</span></div>
           <div class="arrow">→</div>
@@ -143,8 +143,8 @@ footer { color: var(--ink-soft); font-size: 13px; }
         <table>
           <thead><tr><th>Function</th><th>Type</th><th>What it does</th></tr></thead>
           <tbody>
-            <tr><td><code>jumble_data</code></td><td>Advanced I/O</td><td>The main API: puzzles, uploads, editing, scores, leaderboard, pictures, the upload web page and the notification timer.</td></tr>
-            <tr><td><code>jumble_auth</code></td><td>Advanced I/O</td><td>Sign-in: email and password, plus Google and Zoho sign-in for the upload page.</td></tr>
+            <tr><td><code>jumble_data</code></td><td>Advanced I/O</td><td>The main API: puzzles, uploads, editing, scores, leaderboard, pictures, the admin web page (upload and player leaderboard) and the notification timer.</td></tr>
+            <tr><td><code>jumble_auth</code></td><td>Advanced I/O</td><td>Sign-in: email and password, plus Google and Zoho sign-in for the admin page.</td></tr>
             <tr><td><code>blujem_daily</code></td><td>Advanced I/O</td><td>Daily puzzle pipeline and the Android app-update file and notes.</td></tr>
             <tr><td><code>blujem_daily_job</code></td><td>Job</td><td>The slow part of the pipeline: asks the Zia agent to read a puzzle and checks the result.</td></tr>
             <tr><td><code>jumble_ai</code></td><td>Advanced I/O</td><td>AI helpers for building puzzles.</td></tr>
@@ -156,7 +156,7 @@ footer { color: var(--ink-soft); font-size: 13px; }
         <div class="tile key"><h3>Data Store <code>ZCQL</code></h3><p>Tables for Users and Puzzles: words, answers, slot, publish time.</p></div>
         <div class="tile key"><h3>Stratus <code>bucket: blujem</code></h3><p>Cartoon and wordless cartoon pictures, plus the Android update file and its notes.</p></div>
         <div class="tile"><h3>Cron (Job Scheduling) <code>6 · 9 · 15 · 21 IST</code></h3><p>Opens each puzzle on time and sends the push notification.</p></div>
-        <div class="tile"><h3>Authentication <code>hosted login</code></h3><p>Google and Zoho sign-in for admins on the upload page.</p></div>
+        <div class="tile"><h3>Authentication <code>hosted login</code></h3><p>Google and Zoho sign-in for admins on the admin page.</p></div>
         <div class="tile"><h3>Zia AI agents</h3><p>Read puzzle images and find where the words and boxes are.</p></div>
         <div class="tile"><h3>Cache</h3><p>Holds slow job results until the app collects them.</p></div>
         <div class="tile"><h3>Environment variables</h3><p>Secrets kept out of the code: token key, cron key, Firebase key.</p></div>
@@ -167,7 +167,7 @@ footer { color: var(--ink-soft); font-size: 13px; }
       <div class="sec-head"><span class="layer">Outside services</span><h2>What else BluJem uses</h2></div>
       <div class="grid">
         <div class="tile"><h3>Firebase Cloud Messaging</h3><p>Delivers push notifications to Android and iOS phones.</p></div>
-        <div class="tile"><h3>ChatGPT custom GPT <code>not set up yet</code></h3><p>Planned second way to upload. The server route is built, but the GPT isn't created yet. Today the admin uploads every puzzle on the upload page.</p></div>
+        <div class="tile"><h3>ChatGPT custom GPT <code>not set up yet</code></h3><p>Planned second way to upload. The server route is built, but the GPT isn't created yet. Today the admin uploads every puzzle on the admin page.</p></div>
         <div class="tile"><h3>Anthropic Claude SDK</h3><p>Installed in jumble_ai for AI puzzle help.</p></div>
         <div class="tile"><h3>TinyURL <code>tinyurl.com/blujem</code></h3><p>The short download link in the share message.</p></div>
         <div class="tile"><h3>GitHub</h3><p>Source code; every change is committed and pushed.</p></div>
@@ -194,7 +194,7 @@ footer { color: var(--ink-soft); font-size: 13px; }
             <li>New fun start screen</li>
             <li>New share picture<span>Wordless cartoon, QR code, short link</span></li>
             <li>Edit a puzzle after publishing</li>
-            <li>Google and Zoho sign-in on the upload page</li>
+            <li>Google and Zoho sign-in on the admin page</li>
             <li>Upload puzzles for any future date</li>
           </ul>
         </div>
