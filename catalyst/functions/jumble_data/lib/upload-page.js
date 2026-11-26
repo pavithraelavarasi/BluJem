@@ -141,7 +141,8 @@ function uploadPage() {
 	.tiles { display: flex; flex-wrap: wrap; gap: 6px; min-height: 46px; align-items: center; padding: 6px 8px; background: var(--soft-bg); border: 1px dashed var(--line); border-radius: 10px; margin-bottom: 6px; }
 	.tile { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--accent); background: #fff; font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: 1.05rem; }
 	.tile.empty { border-style: dashed; border-color: var(--line); color: var(--faint); background: transparent; }
-	.tiles .gap { width: 14px; }
+	.tiles .gap { width: 20px; }
+	.tiles .word { display: inline-flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
 	.tiles .mark { font-weight: 700; font-size: 1.2rem; color: var(--ink); margin: 0 -2px; align-self: flex-end; padding-bottom: 4px; }
 	.tiles .wrap { flex-basis: 100%; height: 0; }
 	.preview { margin: 12px 0 4px; }
@@ -439,20 +440,41 @@ function uploadPage() {
 		const tile = (c) => c ? '<span class="tile">' + esc(c) + '</span>' : '<span class="tile empty">?</span>';
 		const boxes = (finalPattern.match(/□/g) || []).length;
 		if (boxes !== letters.length) return letters.map(tile).join('');
-		let i = 0;
-		return [...finalPattern].map((ch) => {
-			if (ch === '□') return tile(letters[i++]);
-			if (ch === NL) return '<span class="wrap"></span>';
-			if (ch === ' ') return '<span class="gap"></span>';
-			return '<span class="mark">' + esc(ch) + '</span>';
-		}).join('');
+		// Each word of the answer is kept together on one line.
+		let i = 0, out = '', word = '';
+		const end = () => { if (word) out += '<span class="word">' + word + '</span>'; word = ''; };
+		for (const ch of finalPattern) {
+			if (ch === '□') word += tile(letters[i++]);
+			else if (ch === NL) { end(); out += '<span class="wrap"></span>'; }
+			else if (ch === ' ') { end(); out += '<span class="gap"></span>'; }
+			else word += '<span class="mark">' + esc(ch) + '</span>';
+		}
+		end();
+		return out;
 	}
+
+	// The circled letters put in the Final answer box, a space between the
+	// answer's words, for the admin to rearrange. Until the admin types in it,
+	// the box is only a guide: Upload does not take it as the answer.
+	let finalTyped = false;
+	function prefillFinal(letters) {
+		if (finalTyped) return;
+		const boxes = (finalPattern.match(/□/g) || []).length;
+		let text = letters.filter(Boolean).join('');
+		if (boxes === letters.length) {
+			let i = 0;
+			text = [...finalPattern].map((ch) => (ch === '□' ? letters[i++] || '' : ' ')).join('').replace(/ +/g, ' ').trim();
+		}
+		$('final').value = text;
+	}
+	$('final').oninput = () => { finalTyped = true; };
 
 	function showFinalLetters() {
 		const letters = circledLetters();
 		const filled = letters.filter(Boolean);
 		const shown = finalOrder && sortedLetters(finalOrder) === sortedLetters(filled.join('')) ? [...finalOrder] : letters;
 		$('finalTiles').innerHTML = answerTiles(shown);
+		prefillFinal(shown);
 	}
 
 	$('shuffleFinal').onclick = () => {
@@ -461,6 +483,7 @@ function uploadPage() {
 		const empties = circledLetters().length - filled.length;
 		finalOrder = shuffled(finalOrder && sortedLetters(finalOrder) === sortedLetters(filled) ? finalOrder : filled);
 		$('finalTiles').innerHTML = answerTiles([...finalOrder, ...Array(empties).fill('')]);
+		prefillFinal([...finalOrder, ...Array(empties).fill('')]);
 	};
 
 	$('checkBtn').onclick = () => check();
@@ -545,6 +568,7 @@ function uploadPage() {
 			previewFile($(name), $(name + 'Preview'), $(name + 'PreviewBox'));
 		}
 		$('text').value = puzzleTextOf(p);
+		finalTyped = false;
 		$('uploadMsg').textContent = '';
 		$('formTitle').textContent = 'Edit puzzle';
 		$('editingText').textContent = 'Editing ' + p.publishDate + ' · ' + (SLOT_NAMES[p.slot] || p.slot) + (p.published ? ' (already published)' : '') + '. Change anything, then tap Upload: it is saved in place, players keep their results and get no second notification. Choose a picture only to replace it.';
@@ -561,7 +585,7 @@ function uploadPage() {
 			if (answer) { input.value = answer; delete input.dataset.jumbled; }
 		});
 		showFinalLetters();
-		$('final').value = String(p.finalAnswer || '').replace(/[^A-Za-z]+/g, ' ').trim();
+		if (p.finalAnswer) { $('final').value = String(p.finalAnswer).replace(/[^A-Za-z]+/g, ' ').trim(); finalTyped = true; }
 	}
 
 	function endEdit() {
@@ -592,6 +616,7 @@ function uploadPage() {
 		fillSlots();
 		$('text').value = '';
 		$('final').value = '';
+		finalTyped = false;
 		$('wordAnswers').innerHTML = '';
 		parsedWords = [];
 		finalOrder = null;
@@ -618,11 +643,12 @@ function uploadPage() {
 		try {
 			const file = $('cartoon').files[0];
 			const wordless = $('wordless').files[0];
+			const final = finalTyped ? $('final').value.trim() : '';
 			const words = Array.from(document.querySelectorAll('[data-word]')).map((i) => (i.dataset.jumbled ? '' : i.value.trim()));
 			const body = Object.assign(form(), {
 				cartoonBase64: file ? await readFile(file) : '',
 				wordlessBase64: wordless ? await readFile(wordless) : '',
-				answers: words.some(Boolean) || $('final').value.trim() ? { words, final: $('final').value.trim() } : null
+				answers: words.some(Boolean) || final ? { words, final } : null
 			});
 			show($('uploadMsg'), 'Uploading…', true);
 			const reply = await call(DATA + 'puzzles/upload', body);
