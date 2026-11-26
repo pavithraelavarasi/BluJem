@@ -137,13 +137,13 @@ function uploadPage() {
 
 	/* Puzzle form helpers */
 	pre { background: var(--soft-bg); padding: 10px; border-radius: 8px; overflow-x: auto; }
-	.words input { font-family: ui-monospace, Menlo, Consolas, monospace; text-transform: uppercase; margin-bottom: 6px; }
+	.words input, #final { font-family: Fredoka, Inter, sans-serif; font-weight: 500; font-size: 1.15rem; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 6px; }
 	.wordhead { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; }
 	.wordhead label { margin: 0; }
-	.mix { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: .15em; font-size: 1.1rem; font-weight: 600; color: var(--ink); }
+	.mix { font-family: Fredoka, Inter, sans-serif; letter-spacing: .18em; font-size: 1.15rem; font-weight: 600; color: var(--ink); }
 	button.shuffle { margin: 0; padding: 0; width: 32px; height: 32px; flex: none; border-radius: 9px; border: none; background: #e0123f; color: #fff; font-size: 17px; line-height: 32px; box-shadow: 0 2px 5px rgba(224,18,63,.3); }
 	.tiles { display: flex; flex-wrap: wrap; gap: 6px; min-height: 46px; align-items: center; padding: 6px 8px; background: var(--soft-bg); border: 1px dashed var(--line); border-radius: 10px; margin-bottom: 6px; }
-	.tile { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--accent); background: #fff; font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: 1.05rem; }
+	.tile { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--accent); background: #fff; font-family: Fredoka, Inter, sans-serif; font-weight: 600; font-size: 1.05rem; }
 	.tile.empty { border-style: dashed; border-color: var(--line); color: var(--faint); background: transparent; }
 	.tiles .gap { width: 20px; }
 	.tiles .word { display: inline-flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
@@ -791,7 +791,7 @@ function uploadPage() {
 		$('draftWords').innerHTML = words.map((w) => {
 			const circled = (w.boxes || []).map((b, i) => (b.c ? i : -1)).filter((i) => i >= 0);
 			const shown = [...String(w.scrambled || '')].map((c, i) => circled.includes(i) ? '<b style="color:var(--accent)">' + esc(c) + '</b>' : esc(c.toLowerCase())).join('');
-			return '<tr><td style="font-family:ui-monospace,Menlo,monospace">' + shown + '</td><td>' + esc(w.answer) + '</td></tr>';
+			return '<tr><td style="font-family:Fredoka,Inter,sans-serif;letter-spacing:.1em">' + shown + '</td><td>' + esc(w.answer) + '</td></tr>';
 		}).join('');
 		$('draftFinal').textContent = p.finalAnswer + '  (' + (p.finalPattern || '').replace(/\\n/g, ' ') + ')';
 		$('draftClue').textContent = p.finalClue ? 'Caption: ' + p.finalClue : '';
