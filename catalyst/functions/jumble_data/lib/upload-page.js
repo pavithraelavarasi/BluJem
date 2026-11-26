@@ -337,6 +337,10 @@ function uploadPage() {
 		} catch (e) { show($('socialMsg'), e.message, false); }
 	}
 
+	// Enter in the email or password box signs in, like tapping the button.
+	['email', 'password'].forEach((id) => $(id).addEventListener('keydown', (e) => {
+		if (e.key === 'Enter') { e.preventDefault(); $('signinBtn').click(); }
+	}));
 	$('signinBtn').onclick = async () => {
 		try {
 			const reply = await call(AUTH + 'login', { email: $('email').value.trim(), password: $('password').value });
