@@ -51,7 +51,8 @@ function uploadPage() {
 	input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,58,110,.14); }
 	input[type=file] { padding: 9px; background: var(--soft-bg); }
 	textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.05rem; min-height: 200px; }
-	.cal { margin-top: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: #fff; max-width: 360px; }
+	.datebox { position: relative; }
+	.cal { position: absolute; left: 0; top: 100%; z-index: 20; margin-top: 6px; width: 320px; max-width: calc(100vw - 48px); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: #fff; box-shadow: 0 10px 30px rgba(22,38,74,.18); }
 	.cal .head { display: flex; align-items: center; justify-content: space-between; font-weight: 700; margin-bottom: 6px; }
 	.cal .head button { margin: 0; padding: 2px 10px; }
 	.cal .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
@@ -188,10 +189,9 @@ function uploadPage() {
 			<button class="plain" id="cancelEdit" style="margin:0">Cancel edit</button>
 		</div>
 		<div class="row">
-			<div><label for="date">Date</label><input id="date" type="date"></div>
+			<div class="datebox"><label for="date">Date</label><input id="date" type="date"><div class="cal hidden" id="cal" aria-label="Days already uploaded"></div></div>
 			<div><label for="slot">Slot</label><select id="slot"></select></div>
 		</div>
-		<div class="cal" id="cal" aria-label="Days already uploaded"></div>
 		<label for="cartoon">Cartoon <span class="hint">— the coloured cartoon only (PNG or JPEG). Leave empty to keep the one already uploaded.</span></label>
 		<input id="cartoon" type="file" accept="image/png,image/jpeg">
 		<figure class="preview hidden" id="cartoonPreviewBox"><img id="cartoonPreview" alt="Cartoon to upload"><figcaption class="hint">This cartoon will be uploaded.</figcaption></figure>
@@ -377,8 +377,22 @@ function uploadPage() {
 			if ($('date').disabled) return;
 			$('date').value = b.dataset.day;
 			fillSlots();
+			$('cal').classList.add('hidden');
 		}; });
 	}
+
+	// The calendar opens in place of the browser's own date picker, only when
+	// the date is clicked; it closes on a day, a click elsewhere, or Esc.
+	$('date').addEventListener('mousedown', (e) => {
+		if ($('date').disabled) return;
+		e.preventDefault();
+		$('date').focus();
+		$('cal').classList.toggle('hidden');
+	});
+	$('date').addEventListener('keydown', (e) => { if (e.key === 'Escape' || e.key === 'Tab') $('cal').classList.add('hidden'); });
+	document.addEventListener('mousedown', (e) => {
+		if (!e.target.closest || !e.target.closest('.datebox')) $('cal').classList.add('hidden');
+	});
 
 	function fillSlots() {
 		const iso = $('date').value;
