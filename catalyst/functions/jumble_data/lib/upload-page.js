@@ -58,8 +58,8 @@ function uploadPage() {
 	.cal .dow { font-size: .75rem; color: #7a7266; font-weight: 600; }
 	.cal button.day { margin: 0; padding: 0; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: var(--ink); font-weight: 500; font-size: .9rem; box-shadow: none; }
 	.cal button.day:hover { border-color: var(--accent); }
-	.cal button.day.some { background: #FBE7B5; }
-	.cal button.day.full { background: #CDE8CF; }
+	.cal button.day.some { background: #F2C14E; font-weight: 700; }
+	.cal button.day.full { background: #7CC98A; font-weight: 700; }
 	.cal button.day.today { font-weight: 800; text-decoration: underline; }
 	.cal button.day.picked { border: 2px solid var(--accent); }
 	.cal .key { display: flex; gap: 14px; margin-top: 8px; font-size: .78rem; color: #7a7266; }
@@ -366,7 +366,7 @@ function uploadPage() {
 			cells += '<button type="button" tabindex="-1" class="' + cls + '" data-day="' + iso + '" title="' + title + '">' + d + '</button>';
 		}
 		const name = first.toLocaleString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-		$('cal').innerHTML = '<div class="head"><button type="button" class="plain" tabindex="-1" data-month="-1" aria-label="Previous month">‹</button><span>' + name + '</span><button type="button" class="plain" tabindex="-1" data-month="1" aria-label="Next month">›</button></div><div class="days">' + cells + '</div><div class="key"><span><i style="background:#CDE8CF"></i>All 3 uploaded</span><span><i style="background:#FBE7B5"></i>Some uploaded</span></div>';
+		$('cal').innerHTML = '<div class="head"><button type="button" class="plain" tabindex="-1" data-month="-1" aria-label="Previous month">‹</button><span>' + name + '</span><button type="button" class="plain" tabindex="-1" data-month="1" aria-label="Next month">›</button></div><div class="days">' + cells + '</div><div class="key"><span><i style="background:#7CC98A"></i>All 3 uploaded</span><span><i style="background:#F2C14E"></i>Some uploaded</span></div>';
 		$('cal').querySelectorAll('[data-month]').forEach((b) => { b.onclick = () => {
 			const t = new Date(Date.UTC(y, m - 1 + Number(b.dataset.month), 1));
 			calMonth = t.getUTCFullYear() + '-' + pad(t.getUTCMonth() + 1);
