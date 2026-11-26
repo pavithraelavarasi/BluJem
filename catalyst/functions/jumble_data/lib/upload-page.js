@@ -128,6 +128,9 @@ function uploadPage() {
 	.tiles { display: flex; flex-wrap: wrap; gap: 6px; min-height: 46px; align-items: center; padding: 6px 8px; background: var(--soft-bg); border: 1px dashed var(--line); border-radius: 10px; margin-bottom: 6px; }
 	.tile { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--accent); background: #fff; font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; font-size: 1.05rem; }
 	.tile.empty { border-style: dashed; border-color: var(--line); color: var(--faint); background: transparent; }
+	.tiles .gap { width: 14px; }
+	.tiles .mark { font-weight: 700; font-size: 1.2rem; color: var(--ink); margin: 0 -2px; align-self: flex-end; padding-bottom: 4px; }
+	.tiles .wrap { flex-basis: 100%; height: 0; }
 	.preview { margin: 12px 0 4px; }
 	.preview img { display: block; width: 100%; max-height: 80vh; object-fit: contain; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
 	.preview figcaption { margin-top: 6px; }
@@ -342,6 +345,9 @@ function uploadPage() {
 	// letters gathered from the typed answers, ready for the final answer.
 	let parsedWords = [];
 	let finalOrder = null;
+	// The answer boxes as typed (□□□ □□□, □□ □□□□): the circled letters are
+	// laid out in them, so the words of the answer show with their gaps.
+	let finalPattern = '';
 
 	// [text]'s letters in a new random order (a different one when possible).
 	function shuffled(text) {
@@ -371,11 +377,26 @@ function uploadPage() {
 		});
 	}
 
+	// [letters] (one per box, '' for a box still empty) in the answer's boxes:
+	// a gap between words, the punctuation as typed, a new line where it wraps.
+	function answerTiles(letters) {
+		const tile = (c) => c ? '<span class="tile">' + esc(c) + '</span>' : '<span class="tile empty">?</span>';
+		const boxes = (finalPattern.match(/□/g) || []).length;
+		if (boxes !== letters.length) return letters.map(tile).join('');
+		let i = 0;
+		return [...finalPattern].map((ch) => {
+			if (ch === '□') return tile(letters[i++]);
+			if (ch === NL) return '<span class="wrap"></span>';
+			if (ch === ' ') return '<span class="gap"></span>';
+			return '<span class="mark">' + esc(ch) + '</span>';
+		}).join('');
+	}
+
 	function showFinalLetters() {
 		const letters = circledLetters();
 		const filled = letters.filter(Boolean);
 		const shown = finalOrder && sortedLetters(finalOrder) === sortedLetters(filled.join('')) ? [...finalOrder] : letters;
-		$('finalTiles').innerHTML = shown.map((c) => c ? '<span class="tile">' + c + '</span>' : '<span class="tile empty">?</span>').join('');
+		$('finalTiles').innerHTML = answerTiles(shown);
 	}
 
 	$('shuffleFinal').onclick = () => {
@@ -383,7 +404,7 @@ function uploadPage() {
 		if (!filled) return;
 		const empties = circledLetters().length - filled.length;
 		finalOrder = shuffled(finalOrder && sortedLetters(finalOrder) === sortedLetters(filled) ? finalOrder : filled);
-		$('finalTiles').innerHTML = [...finalOrder].map((c) => '<span class="tile">' + c + '</span>').join('') + '<span class="tile empty">?</span>'.repeat(empties);
+		$('finalTiles').innerHTML = answerTiles([...finalOrder, ...Array(empties).fill('')]);
 	};
 
 	$('checkBtn').onclick = () => check();
@@ -395,6 +416,7 @@ function uploadPage() {
 			show($('checkMsg'), 'Looks right: ' + p.words.length + ' words, ' + p.pattern.boxes + ' answer boxes (' + p.pattern.groups.join('-') + '). Goes live ' + reply.goesLive + '.', true);
 			parsedWords = p.words;
 			finalOrder = null;
+			finalPattern = String(p.pattern.text || '').replace(/_/g, '□');
 			$('wordAnswers').innerHTML = p.words.map((w, i) => '<div class="wordhead"><label for="word' + i + '">Word ' + (i + 1) + ' <span class="hint mix" id="mix' + i + '">' + w.letters + '</span></label><button type="button" class="shuffle" data-shuffle="' + i + '" title="Shuffle these letters" aria-label="Shuffle the letters of word ' + (i + 1) + '">&#x21bb;</button></div><input id="word' + i + '" data-word="' + i + '" maxlength="' + w.letters.length + '">').join('');
 			document.querySelectorAll('[data-shuffle]').forEach((b) => { b.onclick = () => { const el = $('mix' + b.dataset.shuffle); el.textContent = shuffled(el.textContent); }; });
 			document.querySelectorAll('[data-word]').forEach((input) => { input.oninput = () => { finalOrder = null; showFinalLetters(); }; });
