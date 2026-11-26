@@ -52,6 +52,9 @@ function uploadPage() {
 	input[type=file] { padding: 9px; background: var(--soft-bg); }
 	textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.05rem; min-height: 200px; }
 	.datebox { position: relative; }
+	button.datefield { width: 100%; margin: 0; text-align: left; font-weight: 400; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: none; }
+	button.datefield:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,58,110,.14); }
+	button.datefield:disabled { background: var(--soft-bg); cursor: default; opacity: .8; }
 	.cal { position: absolute; left: 0; top: 100%; z-index: 20; margin-top: 6px; width: 320px; max-width: calc(100vw - 48px); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: #fff; box-shadow: 0 10px 30px rgba(22,38,74,.18); }
 	.cal .head { display: flex; align-items: center; justify-content: space-between; font-weight: 700; margin-bottom: 6px; }
 	.cal .head button { margin: 0; padding: 2px 10px; }
@@ -189,7 +192,7 @@ function uploadPage() {
 			<button class="plain" id="cancelEdit" style="margin:0">Cancel edit</button>
 		</div>
 		<div class="row">
-			<div class="datebox"><label for="date">Date</label><input id="date" type="date"><div class="cal hidden" id="cal" aria-label="Days already uploaded"></div></div>
+			<div class="datebox"><label for="dateBtn">Date</label><input id="date" type="hidden"><button type="button" class="datefield" id="dateBtn" aria-haspopup="dialog"><span id="dateText">Pick a day</span><span aria-hidden="true">📅</span></button><div class="cal hidden" id="cal" aria-label="Days already uploaded"></div></div>
 			<div><label for="slot">Slot</label><select id="slot"></select></div>
 		</div>
 		<label for="cartoon">Cartoon <span class="hint">— the coloured cartoon only (PNG or JPEG). Leave empty to keep the one already uploaded.</span></label>
@@ -383,19 +386,22 @@ function uploadPage() {
 
 	// The calendar opens in place of the browser's own date picker, only when
 	// the date is clicked; it closes on a day, a click elsewhere, or Esc.
-	$('date').addEventListener('mousedown', (e) => {
-		if ($('date').disabled) return;
-		e.preventDefault();
-		$('date').focus();
-		$('cal').classList.toggle('hidden');
-	});
-	$('date').addEventListener('keydown', (e) => { if (e.key === 'Escape' || e.key === 'Tab') $('cal').classList.add('hidden'); });
+	// The day picked, shown on the Date button (the value itself is kept in
+	// the hidden #date field as YYYY-MM-DD).
+	function showDate() {
+		const iso = $('date').value;
+		$('dateText').textContent = iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : 'Pick a day';
+		$('dateBtn').disabled = $('date').disabled;
+	}
+	$('dateBtn').onclick = () => { if (!$('date').disabled) { drawCal(); $('cal').classList.toggle('hidden'); } };
+	document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('cal').classList.add('hidden'); });
 	document.addEventListener('mousedown', (e) => {
 		if (!e.target.closest || !e.target.closest('.datebox')) $('cal').classList.add('hidden');
 	});
 
 	function fillSlots() {
 		const iso = $('date').value;
+		showDate();
 		if (iso) calMonth = iso.slice(0, 7);
 		const taken = uploaded[iso] || [];
 		const mark = (v, t) => taken.includes(v) ? t + ' · ✓ uploaded' : t;
@@ -406,7 +412,6 @@ function uploadPage() {
 		$('answers').classList.add('hidden');
 		drawCal();
 	}
-	$('date').onchange = fillSlots;
 	$('slot').onchange = () => $('answers').classList.add('hidden');
 	$('text').oninput = () => $('answers').classList.add('hidden');
 
@@ -576,6 +581,7 @@ function uploadPage() {
 		fillSlots();
 		$('slot').value = p.slot;
 		$('date').disabled = true;
+		showDate();
 		$('slot').disabled = true;
 		for (const name of ['cartoon', 'wordless']) {
 			$(name).value = '';
@@ -605,6 +611,7 @@ function uploadPage() {
 	function endEdit() {
 		editing = null;
 		$('date').disabled = false;
+		showDate();
 		$('slot').disabled = false;
 		$('formTitle').textContent = 'Puzzle';
 		$('editing').classList.add('hidden');
