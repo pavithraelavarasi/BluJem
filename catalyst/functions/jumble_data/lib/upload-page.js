@@ -67,6 +67,13 @@ function uploadPage() {
 	.cal button.day.some { background: #F2C14E; font-weight: 700; }
 	.cal button.day.full { background: #7CC98A; font-weight: 700; }
 	.cal button.day.today { font-weight: 800; text-decoration: underline; }
+	.modal { position: fixed; inset: 0; z-index: 50; background: rgba(22,38,74,.45); display: grid; place-items: center; padding: 16px; }
+	.modal .box { background: var(--card); border-radius: 18px; padding: 22px 22px 18px; max-width: 380px; width: 100%; box-shadow: 0 20px 50px rgba(22,38,74,.3); text-align: center; }
+	.modal .ico { width: 46px; height: 46px; border-radius: 50%; background: #FBEAE8; color: var(--bad); display: grid; place-items: center; margin: 0 auto 10px; font-size: 24px; font-weight: 700; }
+	.modal h3 { font: 600 1.15rem/1.3 Fredoka, Inter, sans-serif; margin: 0 0 6px; color: var(--ink); }
+	.modal p { margin: 0 0 16px; color: var(--soft); font-size: .95rem; }
+	.modal .acts { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+	.modal .acts button { margin: 0; }
 	.cal button.day.picked { border: 2px solid var(--accent); }
 	.cal .key { display: flex; gap: 14px; margin-top: 8px; font-size: .78rem; color: #7a7266; }
 	.cal .key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
@@ -204,6 +211,7 @@ function uploadPage() {
 		<input id="wordless" type="file" accept="image/png,image/jpeg">
 		<figure class="preview hidden" id="wordlessPreviewBox"><img id="wordlessPreview" alt="Wordless cartoon to upload"><figcaption class="hint">This wordless cartoon will be uploaded.</figcaption></figure>
 		<div class="msg" id="sameMsg"></div>
+		<div class="modal hidden" id="sameModal" role="alertdialog" aria-modal="true" aria-labelledby="sameTitle"><div class="box"><div class="ico">!</div><h3 id="sameTitle">Pictures don't match</h3><p>The wordless cartoon isn't the same picture as the cartoon. Please choose the right one.</p><div class="acts"><button type="button" class="plain hidden" id="sameAnyway">Upload anyway</button><button type="button" class="primary" id="sameOk">OK</button></div></div></div>
 		<label for="text">Puzzle text <span class="hint">— one jumbled word per line, circled letters in CAPITALS; a blank line; then the answer boxes □ (or _), punctuation as printed. A new line in the boxes is where the answer wraps.</span></label>
 		<textarea id="text" spellcheck="false" placeholder="aDRra&#10;tuYpT&#10;hcNRcu&#10;cRaoCD&#10;&#10;□□□-□□□-&#10;□□□"></textarea>
 		<button class="plain" id="checkBtn">Check</button>
@@ -670,13 +678,27 @@ function uploadPage() {
 		const changed = match(a.data, b.data, null, SAME_W, SAME_H, { threshold: 0.1 }) / (SAME_W * SAME_H);
 		const shape = Math.abs(a.ratio - b.ratio) / a.ratio;
 		if (changed <= SAME_LIMIT && shape <= 0.05) return '';
-		return 'The cartoon and the wordless cartoon do not look like the same picture (' + Math.round(changed * 100) + '% different' + (shape > 0.05 ? ', different shape' : '') + '). Check that you chose the right two files.';
+		return "The two pictures don't match (" + Math.round(changed * 100) + '% different' + (shape > 0.05 ? ', different shape' : '') + ').';
+	}
+	// The in-page pop-up for pictures that don't match. With [canGoOn] it also
+	// offers Upload anyway; resolves true only when that is tapped.
+	function askSame(canGoOn) {
+		return new Promise((done) => {
+			$('sameAnyway').classList.toggle('hidden', !canGoOn);
+			$('sameModal').classList.remove('hidden');
+			$('sameOk').focus();
+			const close = (goOn) => { $('sameModal').classList.add('hidden'); document.removeEventListener('keydown', onKey); done(goOn); };
+			const onKey = (e) => { if (e.key === 'Escape') close(false); };
+			document.addEventListener('keydown', onKey);
+			$('sameOk').onclick = () => close(false);
+			$('sameAnyway').onclick = () => close(true);
+		});
 	}
 	async function checkSame() {
 		$('sameMsg').textContent = '';
 		try {
 			const problem = await sameProblem();
-			if (problem) { show($('sameMsg'), problem, false); alert(problem); }
+			if (problem) { show($('sameMsg'), problem, false); await askSame(false); }
 		} catch (e) { show($('sameMsg'), 'Could not compare the two pictures: ' + e.message, false); }
 	}
 
@@ -715,7 +737,7 @@ function uploadPage() {
 		try {
 			let problem = '';
 			try { problem = await sameProblem(); } catch (e) {}
-			if (problem && !confirm(problem + '\\n\\nUpload anyway?')) { show($('uploadMsg'), problem, false); return; }
+			if (problem && !(await askSame(true))) { show($('uploadMsg'), problem, false); return; }
 			const file = $('cartoon').files[0];
 			const wordless = $('wordless').files[0];
 			const final = finalTyped ? $('final').value.trim() : '';
