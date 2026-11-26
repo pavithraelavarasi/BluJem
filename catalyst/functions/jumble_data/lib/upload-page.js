@@ -51,6 +51,19 @@ function uploadPage() {
 	input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,58,110,.14); }
 	input[type=file] { padding: 9px; background: var(--soft-bg); }
 	textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.05rem; min-height: 200px; }
+	.cal { margin-top: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: #fff; max-width: 360px; }
+	.cal .head { display: flex; align-items: center; justify-content: space-between; font-weight: 700; margin-bottom: 6px; }
+	.cal .head button { margin: 0; padding: 2px 10px; }
+	.cal .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+	.cal .dow { font-size: .75rem; color: #7a7266; font-weight: 600; }
+	.cal button.day { margin: 0; padding: 0; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: var(--ink); font-weight: 500; font-size: .9rem; box-shadow: none; }
+	.cal button.day:hover { border-color: var(--accent); }
+	.cal button.day.some { background: #FBE7B5; }
+	.cal button.day.full { background: #CDE8CF; }
+	.cal button.day.today { font-weight: 800; text-decoration: underline; }
+	.cal button.day.picked { border: 2px solid var(--accent); }
+	.cal .key { display: flex; gap: 14px; margin-top: 8px; font-size: .78rem; color: #7a7266; }
+	.cal .key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
 	.row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 	@media (max-width: 560px) { .row { grid-template-columns: 1fr; } section { padding: 18px; border-radius: 16px; } }
 
@@ -177,6 +190,7 @@ function uploadPage() {
 			<div><label for="date">Date</label><input id="date" type="date"></div>
 			<div><label for="slot">Slot</label><select id="slot"></select></div>
 		</div>
+		<div class="cal" id="cal" aria-label="Days already uploaded"></div>
 		<label for="cartoon">Cartoon <span class="hint">— the coloured cartoon only (PNG or JPEG). Leave empty to keep the one already uploaded.</span></label>
 		<input id="cartoon" type="file" accept="image/png,image/jpeg">
 		<figure class="preview hidden" id="cartoonPreviewBox"><img id="cartoonPreview" alt="Cartoon to upload"><figcaption class="hint">This cartoon will be uploaded.</figcaption></figure>
@@ -194,7 +208,7 @@ function uploadPage() {
 			<div class="wordhead"><label>Circled letters <span class="hint">— fill in as the words are solved</span></label><button type="button" class="shuffle" id="shuffleFinal" tabindex="-1" title="Shuffle the circled letters" aria-label="Shuffle the circled letters">&#x21bb;</button></div>
 			<div class="tiles" id="finalTiles"></div>
 			<label for="final">Final answer <span class="hint">— letters in the boxes' order; punctuation comes from the boxes</span></label>
-			<input id="final" style="text-transform:uppercase">
+			<input id="final" autocomplete="off" spellcheck="false" style="text-transform:uppercase">
 			<button class="primary" id="uploadBtn">Upload</button>
 		</div>
 		<div class="msg" id="uploadMsg"></div>
@@ -327,13 +341,55 @@ function uploadPage() {
 		} catch (e) { show($('signinMsg'), e.message, false); }
 	};
 
+	// ---- Calendar under the date: days with puzzles uploaded are coloured
+	// (green when all three slots are in, yellow when some are). Tap a day
+	// to pick it.
+	let uploaded = {};
+	let calMonth = null;
+	const DAY_SLOTS = ['morning', 'evening', 'night'];
+	function drawCal() {
+		const picked = $('date').value;
+		const todayIso = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10);
+		if (!calMonth) calMonth = (picked || todayIso).slice(0, 7);
+		const [y, m] = calMonth.split('-').map(Number);
+		const first = new Date(Date.UTC(y, m - 1, 1));
+		const count = new Date(Date.UTC(y, m, 0)).getUTCDate();
+		const pad = (n) => String(n).padStart(2, '0');
+		let cells = ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => '<span class="dow">' + d + '</span>').join('');
+		cells += '<span></span>'.repeat(first.getUTCDay());
+		for (let d = 1; d <= count; d++) {
+			const iso = y + '-' + pad(m) + '-' + pad(d);
+			const slots = uploaded[iso] || [];
+			const done = DAY_SLOTS.filter((s) => slots.includes(s)).length;
+			const cls = ['day', done >= 3 ? 'full' : done ? 'some' : '', iso === todayIso ? 'today' : '', iso === picked ? 'picked' : ''].filter(Boolean).join(' ');
+			const title = done ? 'Uploaded: ' + DAY_SLOTS.filter((s) => slots.includes(s)).map((s) => SLOT_NAMES[s]).join(', ') : 'Nothing uploaded';
+			cells += '<button type="button" tabindex="-1" class="' + cls + '" data-day="' + iso + '" title="' + title + '">' + d + '</button>';
+		}
+		const name = first.toLocaleString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+		$('cal').innerHTML = '<div class="head"><button type="button" class="plain" tabindex="-1" data-month="-1" aria-label="Previous month">‹</button><span>' + name + '</span><button type="button" class="plain" tabindex="-1" data-month="1" aria-label="Next month">›</button></div><div class="days">' + cells + '</div><div class="key"><span><i style="background:#CDE8CF"></i>All 3 uploaded</span><span><i style="background:#FBE7B5"></i>Some uploaded</span></div>';
+		$('cal').querySelectorAll('[data-month]').forEach((b) => { b.onclick = () => {
+			const t = new Date(Date.UTC(y, m - 1 + Number(b.dataset.month), 1));
+			calMonth = t.getUTCFullYear() + '-' + pad(t.getUTCMonth() + 1);
+			drawCal();
+		}; });
+		$('cal').querySelectorAll('[data-day]').forEach((b) => { b.onclick = () => {
+			if ($('date').disabled) return;
+			$('date').value = b.dataset.day;
+			fillSlots();
+		}; });
+	}
+
 	function fillSlots() {
 		const iso = $('date').value;
-		const options = !iso ? [] : [['morning', 'Morning · 9:00 AM, or when published if later · 4 words'], ['evening', 'Afternoon · 3:00 PM · 4 words'], ['night', 'Night · 9:00 PM · 4 words']];
+		if (iso) calMonth = iso.slice(0, 7);
+		const taken = uploaded[iso] || [];
+		const mark = (v, t) => taken.includes(v) ? t + ' · ✓ uploaded' : t;
+		const options = !iso ? [] : [['morning', mark('morning', 'Morning · 9:00 AM, or when published if later · 4 words')], ['evening', mark('evening', 'Afternoon · 3:00 PM · 4 words')], ['night', mark('night', 'Night · 9:00 PM · 4 words')]];
 		const keep = $('slot').value;
 		$('slot').innerHTML = options.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('');
 		if (options.some(([v]) => v === keep)) $('slot').value = keep;
 		$('answers').classList.add('hidden');
+		drawCal();
 	}
 	$('date').onchange = fillSlots;
 	$('slot').onchange = () => $('answers').classList.add('hidden');
@@ -422,7 +478,7 @@ function uploadPage() {
 			parsedWords = p.words;
 			finalOrder = null;
 			finalPattern = String(p.pattern.text || '').replace(/_/g, '□');
-			$('wordAnswers').innerHTML = p.words.map((w, i) => '<div class="wordhead"><label for="word' + i + '">Word ' + (i + 1) + ' <span class="hint mix" id="mix' + i + '">' + w.letters + '</span></label><button type="button" class="shuffle" data-shuffle="' + i + '" title="Shuffle these letters" aria-label="Shuffle the letters of word ' + (i + 1) + '" tabindex="-1">&#x21bb;</button></div><input id="word' + i + '" data-word="' + i + '" maxlength="' + w.letters.length + '" style="text-transform:uppercase">').join('');
+			$('wordAnswers').innerHTML = p.words.map((w, i) => '<div class="wordhead"><label for="word' + i + '">Word ' + (i + 1) + ' <span class="hint mix" id="mix' + i + '">' + w.letters + '</span></label><button type="button" class="shuffle" data-shuffle="' + i + '" title="Shuffle these letters" aria-label="Shuffle the letters of word ' + (i + 1) + '" tabindex="-1">&#x21bb;</button></div><input id="word' + i + '" data-word="' + i + '" maxlength="' + w.letters.length + '" autocomplete="off" spellcheck="false" style="text-transform:uppercase">').join('');
 			// Each box starts with its jumbled letters, to rearrange in place; it
 			// counts as an answer only once the admin has typed in it.
 			document.querySelectorAll('[data-word]').forEach((input, i) => {
@@ -617,6 +673,11 @@ function uploadPage() {
 			const reply = await call(DATA + 'puzzles/list', { client: 2, all: true });
 			const today = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10);
 			const all = reply.puzzles || [];
+			uploaded = {};
+			all.forEach((p) => { (uploaded[p.publishDate] = uploaded[p.publishDate] || []).push(p.slot); });
+			const taken = uploaded[$('date').value] || [];
+			[...$('slot').options].forEach((o) => { o.textContent = o.textContent.replace(' · ✓ uploaded', '') + (taken.includes(o.value) ? ' · ✓ uploaded' : ''); });
+			drawCal();
 			const live = new Set(all.filter((p) => p.published).map((p) => p.publishDate + '/' + p.slot));
 			// A draft from the GPT has its answers; one whose slot is taken is left out.
 			const rows = all.filter((p) => p.publishDate >= today)
