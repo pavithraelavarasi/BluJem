@@ -191,7 +191,7 @@ function uploadPage() {
 		<div id="answers" class="hidden">
 			<h2 style="margin-top:24px">Answers <span class="hint">— kept on the server; players never receive them before solving. Optional now: without them the puzzle is saved but not published.</span></h2>
 			<div class="words" id="wordAnswers"></div>
-			<div class="wordhead"><label>Circled letters <span class="hint">— fill in as the words are solved</span></label><button type="button" class="shuffle" id="shuffleFinal" title="Shuffle the circled letters" aria-label="Shuffle the circled letters">&#x21bb;</button></div>
+			<div class="wordhead"><label>Circled letters <span class="hint">— fill in as the words are solved</span></label><button type="button" class="shuffle" id="shuffleFinal" tabindex="-1" title="Shuffle the circled letters" aria-label="Shuffle the circled letters">&#x21bb;</button></div>
 			<div class="tiles" id="finalTiles"></div>
 			<label for="final">Final answer <span class="hint">— letters in the boxes' order; punctuation comes from the boxes</span></label>
 			<input id="final" style="text-transform:uppercase">
@@ -371,7 +371,7 @@ function uploadPage() {
 	function circledLetters() {
 		return parsedWords.flatMap((w, i) => {
 			const input = $('word' + i);
-			const answer = input ? input.value.trim().toUpperCase() : '';
+			const answer = input && !input.dataset.jumbled ? input.value.trim().toUpperCase() : '';
 			const solved = answer.length === w.letters.length && sortedLetters(answer) === sortedLetters(w.letters);
 			return w.circled.map((c) => (solved ? answer[c] : ''));
 		});
@@ -414,12 +414,28 @@ function uploadPage() {
 			if (reply.problems && reply.problems.length) { show($('checkMsg'), reply.problems.join('\\n'), false); return false; }
 			const p = reply.parsed;
 			show($('checkMsg'), 'Looks right: ' + p.words.length + ' words, ' + p.pattern.boxes + ' answer boxes (' + p.pattern.groups.join('-') + '). Goes live ' + reply.goesLive + '.', true);
+			// Answers already typed stay when Check is tapped again for the same words.
+			const kept = p.words.map((w, i) => {
+				const input = $('word' + i);
+				return input && !input.dataset.jumbled && parsedWords[i] && sortedLetters(parsedWords[i].letters) === sortedLetters(w.letters) ? input.value : '';
+			});
 			parsedWords = p.words;
 			finalOrder = null;
 			finalPattern = String(p.pattern.text || '').replace(/_/g, '□');
-			$('wordAnswers').innerHTML = p.words.map((w, i) => '<div class="wordhead"><label for="word' + i + '">Word ' + (i + 1) + ' <span class="hint mix" id="mix' + i + '">' + w.letters + '</span></label><button type="button" class="shuffle" data-shuffle="' + i + '" title="Shuffle these letters" aria-label="Shuffle the letters of word ' + (i + 1) + '">&#x21bb;</button></div><input id="word' + i + '" data-word="' + i + '" maxlength="' + w.letters.length + '">').join('');
-			document.querySelectorAll('[data-shuffle]').forEach((b) => { b.onclick = () => { const el = $('mix' + b.dataset.shuffle); el.textContent = shuffled(el.textContent); }; });
-			document.querySelectorAll('[data-word]').forEach((input) => { input.oninput = () => { finalOrder = null; showFinalLetters(); }; });
+			$('wordAnswers').innerHTML = p.words.map((w, i) => '<div class="wordhead"><label for="word' + i + '">Word ' + (i + 1) + ' <span class="hint mix" id="mix' + i + '">' + w.letters + '</span></label><button type="button" class="shuffle" data-shuffle="' + i + '" title="Shuffle these letters" aria-label="Shuffle the letters of word ' + (i + 1) + '" tabindex="-1">&#x21bb;</button></div><input id="word' + i + '" data-word="' + i + '" maxlength="' + w.letters.length + '" style="text-transform:uppercase">').join('');
+			// Each box starts with its jumbled letters, to rearrange in place; it
+			// counts as an answer only once the admin has typed in it.
+			document.querySelectorAll('[data-word]').forEach((input, i) => {
+				const before = kept[i];
+				if (before) input.value = before;
+				else { input.value = p.words[i].letters; input.dataset.jumbled = '1'; }
+				input.oninput = () => { delete input.dataset.jumbled; finalOrder = null; showFinalLetters(); };
+			});
+			document.querySelectorAll('[data-shuffle]').forEach((b) => { b.onclick = () => {
+				const i = b.dataset.shuffle, el = $('mix' + i), input = $('word' + i);
+				el.textContent = shuffled(el.textContent);
+				if (input.dataset.jumbled) input.value = el.textContent;
+			}; });
 			showFinalLetters();
 			$('answers').classList.remove('hidden');
 			return true;
@@ -484,7 +500,10 @@ function uploadPage() {
 		if (!(await check())) return;
 		let words = [];
 		try { words = JSON.parse(p.words || '[]'); } catch (e) {}
-		document.querySelectorAll('[data-word]').forEach((input, i) => { input.value = (words[i] && words[i].answer) || ''; });
+		document.querySelectorAll('[data-word]').forEach((input, i) => {
+			const answer = words[i] && words[i].answer;
+			if (answer) { input.value = answer; delete input.dataset.jumbled; }
+		});
 		showFinalLetters();
 		$('final').value = String(p.finalAnswer || '').replace(/[^A-Za-z]+/g, ' ').trim();
 	}
@@ -543,7 +562,7 @@ function uploadPage() {
 		try {
 			const file = $('cartoon').files[0];
 			const wordless = $('wordless').files[0];
-			const words = Array.from(document.querySelectorAll('[data-word]')).map((i) => i.value.trim());
+			const words = Array.from(document.querySelectorAll('[data-word]')).map((i) => (i.dataset.jumbled ? '' : i.value.trim()));
 			const body = Object.assign(form(), {
 				cartoonBase64: file ? await readFile(file) : '',
 				wordlessBase64: wordless ? await readFile(wordless) : '',
