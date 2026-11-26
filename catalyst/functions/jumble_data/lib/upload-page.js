@@ -203,6 +203,7 @@ function uploadPage() {
 		<label for="wordless">Wordless cartoon <span class="hint">— the same cartoon with no speech bubbles or caption, for the picture players share. Optional; leave empty to keep the one already uploaded.</span></label>
 		<input id="wordless" type="file" accept="image/png,image/jpeg">
 		<figure class="preview hidden" id="wordlessPreviewBox"><img id="wordlessPreview" alt="Wordless cartoon to upload"><figcaption class="hint">This wordless cartoon will be uploaded.</figcaption></figure>
+		<div class="msg" id="sameMsg"></div>
 		<label for="text">Puzzle text <span class="hint">— one jumbled word per line, circled letters in CAPITALS; a blank line; then the answer boxes □ (or _), punctuation as printed. A new line in the boxes is where the answer wraps.</span></label>
 		<textarea id="text" spellcheck="false" placeholder="aDRra&#10;tuYpT&#10;hcNRcu&#10;cRaoCD&#10;&#10;□□□-□□□-&#10;□□□"></textarea>
 		<button class="plain" id="checkBtn">Check</button>
@@ -633,12 +634,56 @@ function uploadPage() {
 		img.src = URL.createObjectURL(file);
 		box.classList.remove('hidden');
 	}
-	$('cartoon').onchange = () => previewFile($('cartoon'), $('cartoonPreview'), $('cartoonPreviewBox'));
-	$('wordless').onchange = () => previewFile($('wordless'), $('wordlessPreview'), $('wordlessPreviewBox'));
+	$('cartoon').onchange = () => { previewFile($('cartoon'), $('cartoonPreview'), $('cartoonPreviewBox')); checkSame(); };
+	$('wordless').onchange = () => { previewFile($('wordless'), $('wordlessPreview'), $('wordlessPreviewBox')); checkSame(); };
+
+	// ---- Same cartoon? The wordless picture must be the cartoon with only the
+	// bubbles and caption taken out. Both are shrunk to 96x144 and compared with
+	// pixelmatch: the same cartoon differs in under 10% of the pixels (the
+	// bubbles), two different cartoons in 80% or more. Over 40% is flagged.
+	const SAME_W = 96, SAME_H = 144, SAME_LIMIT = 0.4;
+	let pixelmatch = null;
+	async function loadPixelmatch() {
+		if (!pixelmatch) pixelmatch = (await import('https://cdn.jsdelivr.net/npm/pixelmatch@5.3.0/+esm')).default;
+		return pixelmatch;
+	}
+	async function pixelsOf(img) {
+		if (!img || !img.getAttribute('src')) return null;
+		if (!img.complete || !img.naturalWidth) await img.decode().catch(() => {});
+		if (!img.naturalWidth) return null;
+		const canvas = document.createElement('canvas');
+		canvas.width = SAME_W; canvas.height = SAME_H;
+		const ctx = canvas.getContext('2d');
+		ctx.drawImage(img, 0, 0, SAME_W, SAME_H);
+		return { data: ctx.getImageData(0, 0, SAME_W, SAME_H).data, ratio: img.naturalWidth / img.naturalHeight };
+	}
+	// The cartoon and the wordless cartoon to compare: the one just chosen,
+	// or, while editing, the one already uploaded.
+	const shownPicture = (name) => ($(name).files[0] ? $(name + 'Preview') : editing ? $(name === 'cartoon' ? 'editCartoon' : 'editWordless') : null);
+	// Returns '' when the two look like the same cartoon (or one is missing),
+	// otherwise the problem to show the admin.
+	async function sameProblem() {
+		if (!$('cartoon').files[0] && !$('wordless').files[0]) return '';
+		const [a, b] = await Promise.all([pixelsOf(shownPicture('cartoon')), pixelsOf(shownPicture('wordless'))]);
+		if (!a || !b) return '';
+		const match = await loadPixelmatch();
+		const changed = match(a.data, b.data, null, SAME_W, SAME_H, { threshold: 0.1 }) / (SAME_W * SAME_H);
+		const shape = Math.abs(a.ratio - b.ratio) / a.ratio;
+		if (changed <= SAME_LIMIT && shape <= 0.05) return '';
+		return 'The cartoon and the wordless cartoon do not look like the same picture (' + Math.round(changed * 100) + '% different' + (shape > 0.05 ? ', different shape' : '') + '). Check that you chose the right two files.';
+	}
+	async function checkSame() {
+		$('sameMsg').textContent = '';
+		try {
+			const problem = await sameProblem();
+			if (problem) { show($('sameMsg'), problem, false); alert(problem); }
+		} catch (e) { show($('sameMsg'), 'Could not compare the two pictures: ' + e.message, false); }
+	}
 
 	// An empty form, ready for the next puzzle.
 	function clearForm() {
 		endEdit();
+		$('sameMsg').textContent = '';
 		$('date').value = '';
 		fillSlots();
 		$('text').value = '';
@@ -668,6 +713,9 @@ function uploadPage() {
 		const btn = $('uploadBtn');
 		btn.disabled = true;
 		try {
+			let problem = '';
+			try { problem = await sameProblem(); } catch (e) {}
+			if (problem && !confirm(problem + '\\n\\nUpload anyway?')) { show($('uploadMsg'), problem, false); return; }
 			const file = $('cartoon').files[0];
 			const wordless = $('wordless').files[0];
 			const final = finalTyped ? $('final').value.trim() : '';
