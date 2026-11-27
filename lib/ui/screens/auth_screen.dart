@@ -280,6 +280,11 @@ class _Logo extends StatelessWidget {
   const _Logo();
 
   @override
-  Widget build(BuildContext context) =>
-      Center(child: Image.asset('assets/images/blujem_logo.png', height: 64, semanticLabel: 'BluJem'));
+  Widget build(BuildContext context) => Center(
+    child: Image.asset(
+      'assets/images/blujem_logo.png',
+      width: (MediaQuery.sizeOf(context).width * 0.6).clamp(200.0, 300.0),
+      semanticLabel: 'BluJem',
+    ),
+  );
 }

@@ -110,7 +110,12 @@ class HomeScreen extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Image.asset('assets/images/blujem_logo.png', height: 36, semanticLabel: 'BluJem'),
+                  // About two-fifths of the screen wide, so it reads the same on any phone.
+                  Image.asset(
+                    'assets/images/blujem_logo.png',
+                    width: (MediaQuery.sizeOf(context).width * 0.42).clamp(140.0, 220.0),
+                    semanticLabel: 'BluJem',
+                  ),
                   const Spacer(),
                   Builder(
                     builder: (button) => IconButton(

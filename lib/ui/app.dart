@@ -131,7 +131,7 @@ class _ShellState extends State<_Shell> {
               labelType: NavigationRailLabelType.all,
               leading: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Image.asset('assets/images/blujem_logo.png', width: 56, semanticLabel: 'BluJem'),
+                child: Image.asset('assets/images/blujem_logo.png', width: 72, semanticLabel: 'BluJem'),
               ),
               destinations: [
                 for (final (icon, selected, label) in destinations)
