@@ -84,8 +84,8 @@ class LeaderboardScreenState extends State<LeaderboardScreen> {
                     refresh();
                   },
                   style: SegmentedButton.styleFrom(
-                    selectedBackgroundColor: p.ink,
-                    selectedForegroundColor: p.paper,
+                    selectedBackgroundColor: p.accent,
+                    selectedForegroundColor: p.tileInk,
                     textStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w600),
                   ),
                 ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// BluJem's palette: newsprint paper, warm ink, one sunny accent, and the
-/// four row colours a BluJem sheet prints its squares in.
+/// BluJem's palette, "Jewel night": deep navy, gold and gem blue, cream
+/// letter tiles with navy letters, and bright gem colours for solved rows.
 class Palette extends ThemeExtension<Palette> {
   const Palette({
     required this.paper,
@@ -19,6 +19,7 @@ class Palette extends ThemeExtension<Palette> {
     required this.rows,
     required this.tile,
     required this.tileEdge,
+    required this.tileInk,
     required this.cursor,
   });
 
@@ -29,65 +30,43 @@ class Palette extends ThemeExtension<Palette> {
   /// and orange for words 5 and 6.
   final List<Color> rows;
 
-  /// The letter tile's face and its pressed-in bottom edge.
-  final Color tile, tileEdge;
+  /// The letter tile's face, its pressed-in bottom edge, and its letters.
+  final Color tile, tileEdge, tileInk;
 
   /// BluJem blue: the square the next tapped letter goes into.
   final Color cursor;
 
   Color rowColor(int index) => rows[index % rows.length];
 
-  static const light = Palette(
-    paper: Color(0xFFFAF7F0),
-    card: Color(0xFFFFFDF8),
-    sunken: Color(0xFFF2ECDD),
-    ink: Color(0xFF1C1B19),
-    inkSoft: Color(0xFF55524B),
-    inkFaint: Color(0xFF8A857A),
-    rule: Color(0xFFD9D2C3),
-    accent: Color(0xFFE8C547),
-    accentSoft: Color(0xFFF7EBBF),
-    success: Color(0xFF2F6B3A),
-    successSoft: Color(0xFFE4EFE2),
-    warning: Color(0xFF9A4A17),
+  static const jewel = Palette(
+    paper: Color(0xFF14204A),
+    card: Color(0xFF1F3170),
+    sunken: Color(0xFF101A3D),
+    ink: Color(0xFFFFFFFF),
+    inkSoft: Color(0xFFC3D0F2),
+    inkFaint: Color(0xFF8D9BC9),
+    rule: Color(0xFF34498C),
+    accent: Color(0xFFFFD23F),
+    accentSoft: Color(0xFF2E3F96),
+    success: Color(0xFF5BE38B),
+    successSoft: Color(0xFF1B4A3E),
+    warning: Color(0xFFFF8A3D),
     rows: [
-      Color(0xFFF6C3D5),
-      Color(0xFFC9E6BF),
-      Color(0xFFC3DAF2),
-      Color(0xFFF7E5A1),
-      Color(0xFFE2D3F6),
-      Color(0xFFF9D5B4),
+      Color(0xFFFF8FC4),
+      Color(0xFF6FE6A0),
+      Color(0xFF6CCBFF),
+      Color(0xFFFFD84D),
+      Color(0xFFC3A8FF),
+      Color(0xFFFFAF66),
     ],
-    tile: Color(0xFFFFFFFF),
-    tileEdge: Color(0xFFCFC6B3),
-    cursor: Color(0xFF1E6FE0),
+    tile: Color(0xFFFFF6DC),
+    tileEdge: Color(0xFFC9A94A),
+    tileInk: Color(0xFF14204A),
+    cursor: Color(0xFF1E8CFF),
   );
 
-  static const dark = Palette(
-    paper: Color(0xFF161513),
-    card: Color(0xFF211F1C),
-    sunken: Color(0xFF2B2925),
-    ink: Color(0xFFF3EFE6),
-    inkSoft: Color(0xFFC2BCAF),
-    inkFaint: Color(0xFF8D877B),
-    rule: Color(0xFF3A3732),
-    accent: Color(0xFFE8C547),
-    accentSoft: Color(0xFF4A3F1A),
-    success: Color(0xFF7CC48A),
-    successSoft: Color(0xFF1F3323),
-    warning: Color(0xFFE59A62),
-    rows: [
-      Color(0xFF8E4A63),
-      Color(0xFF4F7A45),
-      Color(0xFF4A6C93),
-      Color(0xFF8C7A2E),
-      Color(0xFF6E5490),
-      Color(0xFF9A6236),
-    ],
-    tile: Color(0xFF34312C),
-    tileEdge: Color(0xFF14130F),
-    cursor: Color(0xFF7DB0FF),
-  );
+  /// One look in every light: the app is always Jewel night.
+  static const light = jewel, dark = jewel;
 
   @override
   Palette copyWith() => this;
@@ -103,15 +82,15 @@ extension PaletteOf on BuildContext {
 const fontFamily = 'Fredoka';
 
 ThemeData buildTheme(Brightness brightness) {
-  final p = brightness == Brightness.light ? Palette.light : Palette.dark;
+  const p = Palette.jewel;
   final scheme = ColorScheme.fromSeed(
     seedColor: p.accent,
-    brightness: brightness,
+    brightness: Brightness.dark,
     surface: p.paper,
     primary: p.ink,
     onPrimary: p.paper,
     secondary: p.accent,
-    onSecondary: const Color(0xFF1C1B19),
+    onSecondary: p.tileInk,
     error: p.warning,
   );
   final base = ThemeData(
@@ -146,17 +125,24 @@ ThemeData buildTheme(Brightness brightness) {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: p.rule),
+        side: BorderSide(color: p.rule, width: 1.5),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: p.ink,
-        foregroundColor: p.paper,
+        backgroundColor: p.accent,
+        foregroundColor: p.tileInk,
+        disabledBackgroundColor: p.rule,
+        disabledForegroundColor: p.inkFaint,
         minimumSize: const Size(48, 52),
         padding: const EdgeInsets.symmetric(horizontal: 22),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        textStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w600, fontSize: 16),
+        // A game button: a darker gold edge under the face.
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFC99A00), width: 2),
+        ),
+        elevation: 0,
+        textStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700, fontSize: 16),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -188,22 +174,24 @@ ThemeData buildTheme(Brightness brightness) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: p.ink, width: 1.5),
+        borderSide: BorderSide(color: p.accent, width: 1.5),
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: p.card,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: p.accentSoft,
+      indicatorColor: p.accent,
       labelTextStyle: WidgetStatePropertyAll(
         TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w600, fontSize: 12, color: p.ink),
       ),
-      iconTheme: WidgetStatePropertyAll(IconThemeData(color: p.ink)),
+      iconTheme: WidgetStateProperty.resolveWith(
+        (s) => IconThemeData(color: s.contains(WidgetState.selected) ? p.tileInk : p.ink),
+      ),
     ),
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: p.card,
-      indicatorColor: p.accentSoft,
-      selectedIconTheme: IconThemeData(color: p.ink),
+      indicatorColor: p.accent,
+      selectedIconTheme: IconThemeData(color: p.tileInk),
       unselectedIconTheme: IconThemeData(color: p.inkSoft),
       selectedLabelTextStyle: TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w600, color: p.ink),
       unselectedLabelTextStyle: TextStyle(fontFamily: fontFamily, color: p.inkSoft),
@@ -217,10 +205,18 @@ ThemeData buildTheme(Brightness brightness) {
     dialogTheme: DialogThemeData(backgroundColor: p.card, surfaceTintColor: Colors.transparent),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: p.ink,
-      contentTextStyle: TextStyle(fontFamily: fontFamily, color: p.paper),
+      backgroundColor: p.card,
+      contentTextStyle: TextStyle(fontFamily: fontFamily, color: p.ink),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
     dividerTheme: DividerThemeData(color: p.rule, thickness: 1, space: 1),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? p.accent : p.card),
+        foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? p.tileInk : p.ink),
+        side: WidgetStatePropertyAll(BorderSide(color: p.rule, width: 1.5)),
+        textStyle: const WidgetStatePropertyAll(TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700)),
+      ),
+    ),
   );
 }

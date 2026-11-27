@@ -566,7 +566,7 @@ class _Tile extends StatelessWidget {
         ? p.sunken
         : next
         ? p.cursor
-        : Color.lerp(color, p.ink, solved ? 0.35 : 0.25)!;
+        : Color.lerp(solved ? color : p.tileEdge, p.tileInk, solved ? 0.35 : 0.15)!;
     final radius = BorderRadius.circular(size * 0.22);
     // Pressed sinks into its edge; lifted rises off the board.
     final depth = lifted ? 6.0 : (pressed ? 1.0 : 3.0);
@@ -600,7 +600,7 @@ class _Tile extends StatelessWidget {
                 height: size * 0.8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: p.ink.withValues(alpha: 0.75), width: 1.8),
+                  border: Border.all(color: p.tileInk.withValues(alpha: 0.75), width: 1.8),
                 ),
               ),
             if (fixed)
@@ -610,7 +610,7 @@ class _Tile extends StatelessWidget {
                 child: Container(
                   width: size * 0.11,
                   height: size * 0.11,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: p.inkSoft.withValues(alpha: 0.7)),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: p.tileInk.withValues(alpha: 0.45)),
                 ),
               ),
             if (!empty)
@@ -621,7 +621,7 @@ class _Tile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: size * 0.54,
                     fontWeight: FontWeight.w700,
-                    color: next ? p.cursor : p.ink,
+                    color: next ? p.cursor : p.tileInk,
                     height: 1,
                   ),
                 ),

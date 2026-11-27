@@ -320,7 +320,12 @@ class _TodayCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(colors: [p.rows[2], p.rows[0]], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(
+          colors: [p.card, const Color(0xFF2A2F7A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: p.accent, width: 2),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
