@@ -192,9 +192,8 @@ class PagerHint extends StatelessWidget {
   }
 }
 
-/// A quiet "Swipe for words" pill under the cartoon. Its arrow gives three
-/// small pushes toward the words when the page shows, then rests, so it
-/// never sits on the cartoon or keeps moving. Tapping it turns the page too.
+/// The big round arrow, bouncing toward the words page, with its label
+/// beside it. It sits under the cartoon, never on it. Tapping turns the page.
 class SwipeArrow extends StatefulWidget {
   const SwipeArrow({super.key, required this.label, required this.onTap});
   final String label;
@@ -205,17 +204,16 @@ class SwipeArrow extends StatefulWidget {
 }
 
 class _SwipeArrowState extends State<SwipeArrow> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
-  bool _started = false;
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_started || reduceMotion(context)) return;
-    _started = true;
-    Future.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) _c.repeat(reverse: true, count: 6);
-    });
+    if (reduceMotion(context)) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat(reverse: true);
+    }
   }
 
   @override
@@ -230,32 +228,49 @@ class _SwipeArrowState extends State<SwipeArrow> with SingleTickerProviderStateM
     return Semantics(
       button: true,
       label: widget.label,
-      child: Material(
-        color: p.card,
-        shape: StadiumBorder(side: BorderSide(color: p.rule)),
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: widget.onTap,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
-            child: ExcludeSemantics(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.label,
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: p.ink),
-                  ),
-                  const SizedBox(width: 4),
-                  AnimatedBuilder(
-                    animation: _c,
-                    builder: (_, child) =>
-                        Transform.translate(offset: Offset(5 * Curves.easeInOut.transform(_c.value), 0), child: child),
-                    child: Icon(Icons.arrow_forward_rounded, size: 20, color: p.accent),
-                  ),
-                ],
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: ExcludeSemantics(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: p.card,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: p.rule),
+                ),
+                child: Text(
+                  widget.label,
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: p.ink),
+                ),
               ),
-            ),
+              const SizedBox(width: 10),
+              AnimatedBuilder(
+                animation: _c,
+                builder: (_, child) {
+                  final t = Curves.easeInOut.transform(_c.value);
+                  return Transform.translate(
+                    offset: Offset(8 * t, 0),
+                    child: Transform.scale(scale: 1 + .12 * t, child: child),
+                  );
+                },
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: p.accent,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: p.accent.withValues(alpha: .45), blurRadius: 14, spreadRadius: 1)],
+                  ),
+                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 30),
+                ),
+              ),
+              // Room for the bounce, so the row does not shift.
+              const SizedBox(width: 14),
+            ],
           ),
         ),
       ),

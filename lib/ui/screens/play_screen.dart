@@ -385,7 +385,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                   onPageChanged: _onPageChanged,
                   children: [
                     // The cartoon gets the whole page down to the answer row,
-                    // as large as it fits without cropping; a small pill under
+                    // as large as it fits without cropping; the bouncing arrow under
                     // it points to the words until they are all solved.
                     Padding(
                       padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
@@ -393,7 +393,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                         children: [
                           Expanded(child: CartoonView(puzzle: puzzle)),
                           if (!board.allWordsSolved) ...[
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
                             SwipeArrow(label: 'Swipe for words', onTap: () => _goToPage(_wordsIndex)),
                           ],
                         ],
