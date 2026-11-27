@@ -192,8 +192,9 @@ class PagerHint extends StatelessWidget {
   }
 }
 
-/// A round arrow over the cartoon that keeps pulsing toward the words page,
-/// saying the jumbled words are a swipe away. Tapping it turns the page too.
+/// A quiet "Swipe for words" pill under the cartoon. Its arrow gives three
+/// small pushes toward the words when the page shows, then rests, so it
+/// never sits on the cartoon or keeps moving. Tapping it turns the page too.
 class SwipeArrow extends StatefulWidget {
   const SwipeArrow({super.key, required this.label, required this.onTap});
   final String label;
@@ -204,16 +205,17 @@ class SwipeArrow extends StatefulWidget {
 }
 
 class _SwipeArrowState extends State<SwipeArrow> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
+  bool _started = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (reduceMotion(context)) {
-      _c.stop();
-    } else if (!_c.isAnimating) {
-      _c.repeat(reverse: true);
-    }
+    if (_started || reduceMotion(context)) return;
+    _started = true;
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) _c.repeat(reverse: true, count: 6);
+    });
   }
 
   @override
@@ -228,46 +230,31 @@ class _SwipeArrowState extends State<SwipeArrow> with SingleTickerProviderStateM
     return Semantics(
       button: true,
       label: widget.label,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (_, child) {
-            final t = Curves.easeInOut.transform(_c.value);
-            return Transform.translate(
-              offset: Offset(8 * t, 0),
-              child: Transform.scale(scale: 1 + .12 * t, child: child),
-            );
-          },
-          child: ExcludeSemantics(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: p.accent,
-                    shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: p.accent.withValues(alpha: .45), blurRadius: 14, spreadRadius: 1)],
-                  ),
-                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 32),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: p.card.withValues(alpha: .92),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: p.rule),
-                  ),
-                  child: Text(
+      child: Material(
+        color: p.card,
+        shape: StadiumBorder(side: BorderSide(color: p.rule)),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: widget.onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
+            child: ExcludeSemantics(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
                     widget.label,
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: p.ink),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: p.ink),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  AnimatedBuilder(
+                    animation: _c,
+                    builder: (_, child) =>
+                        Transform.translate(offset: Offset(5 * Curves.easeInOut.transform(_c.value), 0), child: child),
+                    child: Icon(Icons.arrow_forward_rounded, size: 20, color: p.accent),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
