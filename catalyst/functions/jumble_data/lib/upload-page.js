@@ -635,10 +635,17 @@ function uploadPage() {
 	$('cancelEdit').onclick = () => { clearForm(); $('uploadMsg').textContent = ''; };
 
 	// Shows the picture just chosen, large enough to read, before it is sent.
+	// Each picture is read the moment it is chosen and kept here: a phone's
+	// browser can lose access to a chosen file a few minutes later (or when it
+	// lives in Google Photos or Drive), so waiting for Upload to read it fails.
+	const picked = {};
 	function previewFile(input, img, box) {
 		if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
 		const file = input.files[0];
+		delete picked[input.id];
 		if (!file) { img.removeAttribute('src'); box.classList.add('hidden'); return; }
+		picked[input.id] = readFile(file, input.id === 'wordless' ? 'wordless cartoon' : 'cartoon');
+		picked[input.id].catch((e) => show($('uploadMsg'), e.message, false));
 		img.src = URL.createObjectURL(file);
 		box.classList.remove('hidden');
 	}
@@ -722,11 +729,11 @@ function uploadPage() {
 		}
 	}
 
-	function readFile(file) {
+	function readFile(file, what) {
 		return new Promise((resolve, reject) => {
 			const r = new FileReader();
 			r.onload = () => resolve(String(r.result).split(',')[1] || '');
-			r.onerror = () => reject(new Error('The cartoon could not be read.'));
+			r.onerror = () => reject(new Error('The ' + what + " couldn't be opened on this phone. Choose it again; if it is in Google Photos or Drive, save it to the phone first."));
 			r.readAsDataURL(file);
 		});
 	}
@@ -743,8 +750,8 @@ function uploadPage() {
 			const final = finalTyped ? $('final').value.trim() : '';
 			const words = Array.from(document.querySelectorAll('[data-word]')).map((i) => (i.dataset.jumbled ? '' : i.value.trim()));
 			const body = Object.assign(form(), {
-				cartoonBase64: file ? await readFile(file) : '',
-				wordlessBase64: wordless ? await readFile(wordless) : '',
+				cartoonBase64: file ? await picked.cartoon : '',
+				wordlessBase64: wordless ? await picked.wordless : '',
 				answers: words.some(Boolean) || final ? { words, final } : null
 			});
 			show($('uploadMsg'), 'Uploading…', true);
