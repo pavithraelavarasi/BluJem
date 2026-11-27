@@ -7,7 +7,7 @@ import 'package:flutter/widgets.dart';
 /// read again — puzzles, the player's record and profile — and screens that
 /// listen (the leaderboard) reload too. Nobody has to pull down to refresh.
 class AppRefresh extends ChangeNotifier with WidgetsBindingObserver {
-  AppRefresh(this._refresh, {DateTime Function()? clock, this.every = const Duration(minutes: 5)})
+  AppRefresh(this._refresh, {DateTime Function()? clock, this.every = const Duration(minutes: 15)})
     : _clock = clock ?? DateTime.now;
 
   /// Reads everything again.
@@ -19,7 +19,9 @@ class AppRefresh extends ChangeNotifier with WidgetsBindingObserver {
 
   /// A refresh this soon after the last one is skipped (a share sheet or a
   /// permission prompt also counts as leaving the app and coming back).
-  static const _minGap = Duration(seconds: 15);
+  /// New puzzles do not wait on this: a notification or a slot opening
+  /// fetches them at once.
+  static const _minGap = Duration(seconds: 60);
 
   Timer? _timer;
   DateTime? _last;

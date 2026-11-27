@@ -485,12 +485,17 @@ async function timerNotify(req, res) {
 	return sendJson(res, 200, { announced });
 }
 
+// Pictures already found to be out. A puzzle that is out stays out, so this
+// instance need not read the Puzzles table again for them (one Data Store read
+// saved per picture download); a picture not out yet is always checked.
+const releasedSheets = new Set();
+
 async function streamSheet(app, caller, body, res) {
 	const key = String(body.key || '').trim();
 	if (!key) return sendJson(res, 400, { error: 'key is required.' });
 
 	// A player only gets the picture of a puzzle that is out.
-	if (caller.role !== 'admin') {
+	if (caller.role !== 'admin' && !releasedSheets.has(key)) {
 		// A wordless picture goes with its cartoon: out when that puzzle is.
 		const keys = isWordlessKey(key) ? cartoonKeysFor(key) : [key];
 		const where = keys.map((k) => `SheetKey = '${quote(k)}'`).join(' OR ');
@@ -499,6 +504,7 @@ async function streamSheet(app, caller, body, res) {
 		if (!rows.some((r) => asBool(r.Published) && isReleased(r))) {
 			return sendJson(res, 404, { error: 'That puzzle is not out yet.' });
 		}
+		releasedSheets.add(key);
 	}
 
 	const bucket = app.stratus().bucket(BUCKET);

@@ -55,11 +55,22 @@ Future<void> main() async {
   unawaited(auth.start());
   // "A new BluJem is out", pushed when the admin publishes and when a timed slot opens.
   unawaited(PuzzleReminders(onPuzzleOut: () => unawaited(library.sync())).start());
+  // Puzzles on every refresh; the player's record (finished on another
+  // phone) at most every 10 minutes and the profile at most hourly, as they
+  // rarely change: fewer reads on the server, nothing late for the player.
+  DateTime? recordsAt, profileAt;
+  bool due(DateTime? at, Duration gap) => at == null || DateTime.now().difference(at) >= gap;
   final refresh = AppRefresh(() {
     library.onResumed();
     if (auth.signedIn) {
-      unawaited(records.refresh());
-      unawaited(auth.refreshProfile());
+      if (due(recordsAt, const Duration(minutes: 10))) {
+        recordsAt = DateTime.now();
+        unawaited(records.refresh());
+      }
+      if (due(profileAt, const Duration(hours: 1))) {
+        profileAt = DateTime.now();
+        unawaited(auth.refreshProfile());
+      }
     }
   })..start();
 
@@ -86,4 +97,3 @@ Future<void> main() async {
     }),
   );
 }
-

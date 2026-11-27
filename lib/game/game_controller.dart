@@ -326,7 +326,7 @@ class GameController extends ChangeNotifier {
   void _scheduleWaitingCheck() {
     _waitingCheck?.cancel();
     if (!library.missingOpenedSlot || _account == null) return;
-    _waitingCheck = Timer.periodic(const Duration(seconds: 60), (_) => library.sync());
+    _waitingCheck = Timer.periodic(const Duration(minutes: 2), (_) => library.sync());
   }
 
   // ------------------------------------------------------------- clocks
