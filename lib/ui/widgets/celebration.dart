@@ -192,8 +192,8 @@ class PagerHint extends StatelessWidget {
   }
 }
 
-/// The big round arrow, bouncing toward the words page, with its label
-/// beside it. It sits under the cartoon, never on it. Tapping turns the page.
+/// The big round arrow at the cartoon's right edge, bouncing toward the
+/// words page, with a small label under it. Tapping turns the page too.
 class SwipeArrow extends StatefulWidget {
   const SwipeArrow({super.key, required this.label, required this.onTap});
   final String label;
@@ -232,45 +232,44 @@ class _SwipeArrowState extends State<SwipeArrow> with SingleTickerProviderStateM
         onTap: widget.onTap,
         behavior: HitTestBehavior.opaque,
         child: ExcludeSemantics(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: p.card,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: p.rule),
-                ),
-                child: Text(
-                  widget.label,
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: p.ink),
-                ),
-              ),
-              const SizedBox(width: 10),
-              AnimatedBuilder(
-                animation: _c,
-                builder: (_, child) {
-                  final t = Curves.easeInOut.transform(_c.value);
-                  return Transform.translate(
-                    offset: Offset(8 * t, 0),
-                    child: Transform.scale(scale: 1 + .12 * t, child: child),
-                  );
-                },
-                child: Container(
-                  width: 50,
-                  height: 50,
+          child: AnimatedBuilder(
+            animation: _c,
+            builder: (_, child) {
+              final t = Curves.easeInOut.transform(_c.value);
+              // Bounces toward the edge, so it never reaches further in.
+              return Transform.translate(
+                offset: Offset(6 * t - 6, 0),
+                child: Transform.scale(scale: 1 + .1 * t, child: child),
+              );
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: p.accent,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: p.accent.withValues(alpha: .45), blurRadius: 14, spreadRadius: 1)],
+                    boxShadow: [BoxShadow(color: p.accent.withValues(alpha: .45), blurRadius: 12, spreadRadius: 1)],
                   ),
-                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 30),
+                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 28),
                 ),
-              ),
-              // Room for the bounce, so the row does not shift.
-              const SizedBox(width: 14),
-            ],
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: p.card.withValues(alpha: .92),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: p.rule),
+                  ),
+                  child: Text(
+                    widget.label,
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: p.ink),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
