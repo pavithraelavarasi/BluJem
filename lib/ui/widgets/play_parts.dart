@@ -622,12 +622,13 @@ class HowToPlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final steps = [
+      'The puzzle opens on the cartoon. Swipe left (or tap the arrow) to see the jumbled words.',
       'Unscramble each word. Tap its letters in order: R A J A → tap A, J, A, R → A J A R. '
           'Or drag a letter to where it goes. A word fills with colour once it is right: tap its ✓ to see what it means.',
       'Tap a formed letter to go back to it. '
           '${Theme.of(context).platform == TargetPlatform.macOS ? 'On a keyboard, type letters and press Backspace to undo.' : 'Shake the phone to mix the unsolved letters again.'}',
       'The circled letters drop into the answer row at the bottom.',
-      'Swipe to the cartoon, read the riddle, and arrange the circled letters into the answer.',
+      'Swipe back to the cartoon, read the riddle, and arrange the circled letters into the answer.',
       'The faster you finish, the more you score.',
     ];
     return Column(

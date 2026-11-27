@@ -38,7 +38,10 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
   late final ShakeDetector _shake = ShakeDetector(_onShake);
   final _pages = PageController();
   final _keys = FocusNode(debugLabel: 'board keys');
-  int _page = 0;
+
+  /// The cartoon comes first; the jumbled words are one swipe to the right.
+  static const _cartoonPage = 0, _wordsIndex = 1;
+  int _page = _cartoonPage;
 
   /// The row last tapped or touched; hints and the underscore follow it.
   int? _focus;
@@ -181,6 +184,8 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
     final target = game.hintTarget(_focus);
     if (target == null) return KeyEventResult.ignored;
     final row = game.board.row(target)!;
+    // Typing a word: its letters are on the Words page.
+    if (target != finalRowId && _page != _wordsIndex) _goToPage(_wordsIndex);
     final keys = HardwareKeyboard.instance;
     final key = event.logicalKey;
 
@@ -379,13 +384,29 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                   controller: _pages,
                   onPageChanged: _onPageChanged,
                   children: [
-                    _wordsPage(context, active),
                     // The cartoon gets the whole page down to the answer row,
-                    // as large as it fits without cropping.
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-                      child: CartoonView(puzzle: puzzle),
+                    // as large as it fits without cropping; a pulsing arrow
+                    // points to the words until they are all solved.
+                    Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
+                            child: CartoonView(puzzle: puzzle),
+                          ),
+                        ),
+                        if (!board.allWordsSolved)
+                          Positioned(
+                            right: 10,
+                            top: 0,
+                            bottom: 0,
+                            child: Center(
+                              child: SwipeArrow(label: 'Swipe for words', onTap: () => _goToPage(_wordsIndex)),
+                            ),
+                          ),
+                      ],
                     ),
+                    _wordsPage(context, active),
                   ],
                 ),
               ),
@@ -434,7 +455,7 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
   /// Hint: one right letter into the active word. The letters are on the
   /// Words page, so a word's hint turns back to it first.
   void _hint(int rowId) {
-    if (rowId != finalRowId && _page != 0) _goToPage(0);
+    if (rowId != finalRowId && _page != _wordsIndex) _goToPage(_wordsIndex);
     setState(() => _focus = rowId);
     unawaited(game.hintLetter(rowId));
   }
@@ -861,17 +882,17 @@ class _PagerBar extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         child: page == 0
             ? Row(
-                key: const ValueKey('words'),
+                key: const ValueKey('cartoon'),
                 children: [
                   progress,
                   const Spacer(),
-                  PagerHint(label: 'See Cartoon', forward: true, nudge: nudge, onTap: () => onPage(1)),
+                  PagerHint(label: 'See Words', forward: true, nudge: nudge, onTap: () => onPage(1)),
                 ],
               )
             : Row(
-                key: const ValueKey('cartoon'),
+                key: const ValueKey('words'),
                 children: [
-                  PagerHint(label: 'See Words', forward: false, nudge: nudge, onTap: () => onPage(0)),
+                  PagerHint(label: 'See Cartoon', forward: false, nudge: nudge, onTap: () => onPage(0)),
                   const Spacer(),
                   progress,
                 ],

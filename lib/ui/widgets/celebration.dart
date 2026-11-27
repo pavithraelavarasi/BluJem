@@ -139,7 +139,7 @@ class PagerHint extends StatelessWidget {
   const PagerHint({super.key, required this.label, required this.forward, required this.nudge, required this.onTap});
   final String label;
 
-  /// Points right (to the cartoon) rather than left (back to the words).
+  /// Points right (on to the words) rather than left (back to the cartoon).
   final bool forward;
   final bool nudge;
   final VoidCallback onTap;
@@ -184,6 +184,90 @@ class PagerHint extends StatelessWidget {
                   if (forward) moving,
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A round arrow over the cartoon that keeps pulsing toward the words page,
+/// saying the jumbled words are a swipe away. Tapping it turns the page too.
+class SwipeArrow extends StatefulWidget {
+  const SwipeArrow({super.key, required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  State<SwipeArrow> createState() => _SwipeArrowState();
+}
+
+class _SwipeArrowState extends State<SwipeArrow> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (reduceMotion(context)) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    return Semantics(
+      button: true,
+      label: widget.label,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (_, child) {
+            final t = Curves.easeInOut.transform(_c.value);
+            return Transform.translate(
+              offset: Offset(8 * t, 0),
+              child: Transform.scale(scale: 1 + .12 * t, child: child),
+            );
+          },
+          child: ExcludeSemantics(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: p.accent,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: p.accent.withValues(alpha: .45), blurRadius: 14, spreadRadius: 1)],
+                  ),
+                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 32),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: p.card.withValues(alpha: .92),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: p.rule),
+                  ),
+                  child: Text(
+                    widget.label,
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: p.ink),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
