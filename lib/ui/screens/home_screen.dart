@@ -128,7 +128,9 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              Text('${greeting(DateTime.now())}, ${_firstName(account?.displayName)}!', style: t.headlineMedium),
+              // The name on a line of its own, so a long one wraps instead of being cut off.
+              Text('${greeting(DateTime.now())},', style: t.headlineMedium),
+              Text('${_firstName(account?.displayName)}!', style: t.headlineMedium?.copyWith(color: p.accent)),
               Text(longDate(), style: TextStyle(color: p.inkSoft)),
               const SizedBox(height: 20),
               _TodayCard(
