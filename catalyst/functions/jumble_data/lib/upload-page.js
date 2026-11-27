@@ -213,7 +213,7 @@ function uploadPage() {
 		<div class="msg" id="sameMsg"></div>
 		<div class="modal hidden" id="sameModal" role="alertdialog" aria-modal="true" aria-labelledby="sameTitle"><div class="box"><div class="ico">!</div><h3 id="sameTitle">Pictures don't match</h3><p>The wordless cartoon isn't the same picture as the cartoon. Please choose the right one.</p><div class="acts"><button type="button" class="plain hidden" id="sameAnyway">Upload anyway</button><button type="button" class="primary" id="sameOk">OK</button></div></div></div>
 		<label for="text">Puzzle text <span class="hint">— one jumbled word per line, circled letters in CAPITALS; a blank line; then the answer boxes □ (or _), punctuation as printed. A new line in the boxes is where the answer wraps.</span></label>
-		<textarea id="text" spellcheck="false" placeholder="aDRra&#10;tuYpT&#10;hcNRcu&#10;cRaoCD&#10;&#10;□□□-□□□-&#10;□□□"></textarea>
+		<textarea id="text" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" placeholder="aDRra&#10;tuYpT&#10;hcNRcu&#10;cRaoCD&#10;&#10;□□□-□□□-&#10;□□□"></textarea>
 		<button class="plain" id="checkBtn">Check</button>
 		<div class="msg" id="checkMsg"></div>
 
