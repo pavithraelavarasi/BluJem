@@ -362,10 +362,21 @@ class _PlayScreenState extends State<PlayScreen> with WidgetsBindingObserver {
                 child: game.showResumedNotice
                     ? Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: NoticeCard(
-                          icon: Icons.play_circle_outline_rounded,
-                          title: 'Timer resumed',
-                          body: 'The clock paused while you were away and picked up exactly where it stopped.',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: p.card,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: p.accent),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.play_arrow_rounded, size: 18, color: p.accent),
+                              const SizedBox(width: 6),
+                              const Text('Time resumed', style: TextStyle(fontWeight: FontWeight.w700)),
+                            ],
+                          ),
                         ),
                       )
                     : const SizedBox.shrink(),
@@ -645,9 +656,14 @@ class _WordRowState extends State<_WordRow> with SingleTickerProviderStateMixin 
     final solved = widget.row.solved;
     final active = widget.active && !solved;
     final state = solved ? 'solved' : (active ? 'active' : 'unsolved, available');
-    // A full-width band, square-cornered: pastel while waiting, deeper while
-    // being played, and the word's own colour once solved.
-    final band = Color.alphaBlend(widget.color.withValues(alpha: active ? 0.5 : (solved ? 0.32 : 0.22)), p.paper);
+    // A full-width band, square-cornered, on the card blue: a stripe of the
+    // word's own colour down its left side, a glow of it while being played,
+    // more of it once solved. The cream tiles always stand out on it.
+    final band = active
+        ? Color.alphaBlend(widget.color.withValues(alpha: 0.28), p.card)
+        : solved
+        ? Color.alphaBlend(widget.color.withValues(alpha: 0.18), p.card)
+        : p.card;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -655,7 +671,13 @@ class _WordRowState extends State<_WordRow> with SingleTickerProviderStateMixin 
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        color: band,
+        decoration: BoxDecoration(
+          color: band,
+          border: Border(
+            left: BorderSide(color: widget.color, width: active ? 8 : 5),
+            bottom: BorderSide(color: p.paper, width: 3),
+          ),
+        ),
         padding: const EdgeInsets.fromLTRB(8, 12, 8, 6),
         child: AnimatedBuilder(
           animation: _pop,
@@ -849,9 +871,12 @@ class _FinalCardState extends State<_FinalCard> with SingleTickerProviderStateMi
         AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           width: double.infinity,
-          color: Color.alphaBlend(
-            (widget.solved ? p.success : p.accent).withValues(alpha: widget.active || widget.ready ? 0.42 : 0.24),
-            p.paper,
+          decoration: BoxDecoration(
+            color: Color.alphaBlend(
+              (widget.solved ? p.success : p.accent).withValues(alpha: widget.active || widget.ready ? 0.22 : 0.08),
+              p.card,
+            ),
+            border: Border.symmetric(horizontal: BorderSide(color: widget.solved ? p.success : p.accent, width: 2)),
           ),
           padding: const EdgeInsets.fromLTRB(8, 10, 8, 4),
           child: AnimatedBuilder(

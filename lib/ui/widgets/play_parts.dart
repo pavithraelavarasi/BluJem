@@ -85,10 +85,10 @@ class SpeedChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.bolt_rounded, size: 18, color: Color(0xFF1C1B19)),
+            Icon(Icons.bolt_rounded, size: 18, color: x > 1 ? p.tileInk : p.inkSoft),
             Text(
               '${x}x',
-              style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1C1B19)),
+              style: TextStyle(fontWeight: FontWeight.w700, color: x > 1 ? p.tileInk : p.inkSoft),
             ),
           ],
         ),
