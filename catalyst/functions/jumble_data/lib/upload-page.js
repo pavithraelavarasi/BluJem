@@ -428,7 +428,20 @@ function uploadPage() {
 		drawCal();
 	}
 	$('slot').onchange = () => $('answers').classList.add('hidden');
-	$('text').oninput = () => $('answers').classList.add('hidden');
+	// A box copied through a Mac or a Windows app can arrive garbled (□ as ‚ñ°
+	// or â–¡): it is turned back into its box right in the text, as pasted.
+	const GARBLED_BOXES = [['\\u201a\\u00f1\\u00b0', '□'], ['\\u00e2\\u2013\\u00a1', '□'], ['\\u00e2\\u0096\\u00a1', '□'], ['\\u201a\\u00f1\\u00a2', '▢'], ['\\u00e2\\u2013\\u00a2', '▢'], ['\\u00e2\\u0096\\u00a2', '▢'], ['\\u201a\\u00f2\\u00ea', '☐'], ['\\u00e2\\u0098\\u0090', '☐'], ['\\u201a\\u00f1\\u2020', '■'], ['\\u00e2\\u2013\\u00a0', '■'], ['\\u00e2\\u0096\\u00a0', '■'], ['\\u201a\\u00f3\\u00aa', '◻'], ['\\u00e2\\u2014\\u00bb', '◻'], ['\\u00e2\\u0097\\u00bb', '◻'], ['\\u201a\\u00a8\\u00fa', '⬜'], ['\\u00e2\\u00ac\\u0153', '⬜'], ['\\u00e2\\u00ac\\u009c', '⬜']];
+	$('text').oninput = () => {
+		const el = $('text');
+		let fixed = el.value;
+		for (const [garbled, box] of GARBLED_BOXES) fixed = fixed.split(garbled).join(box);
+		if (fixed !== el.value) {
+			const end = el.selectionEnd - (el.value.length - fixed.length);
+			el.value = fixed;
+			el.setSelectionRange(end, end);
+		}
+		$('answers').classList.add('hidden');
+	};
 
 	const form = () => ({ date: $('date').value, slot: $('slot').value, text: $('text').value });
 

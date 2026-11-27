@@ -17,6 +17,15 @@
  */
 
 /** Squares as pasted (□), or typed on a keyboard as _ or #. */
+// A box copied through a Mac (into the iPhone simulator, say) or a Windows
+// app can arrive garbled: □ as ‚ñ° or â–¡. Each garbled form goes back to its box.
+const GARBLED_BOXES = [['\u201a\u00f1\u00b0', '□'], ['\u00e2\u2013\u00a1', '□'], ['\u00e2\u0096\u00a1', '□'], ['\u201a\u00f1\u00a2', '▢'], ['\u00e2\u2013\u00a2', '▢'], ['\u00e2\u0096\u00a2', '▢'], ['\u201a\u00f2\u00ea', '☐'], ['\u00e2\u0098\u0090', '☐'], ['\u201a\u00f1\u2020', '■'], ['\u00e2\u2013\u00a0', '■'], ['\u00e2\u0096\u00a0', '■'], ['\u201a\u00f3\u00aa', '◻'], ['\u00e2\u2014\u00bb', '◻'], ['\u00e2\u0097\u00bb', '◻'], ['\u201a\u00a8\u00fa', '⬜'], ['\u00e2\u00ac\u0153', '⬜'], ['\u00e2\u00ac\u009c', '⬜']];
+function ungarbleBoxes(text) {
+	let out = String(text || '');
+	for (const [garbled, box] of GARBLED_BOXES) out = out.split(garbled).join(box);
+	return out;
+}
+
 const BOXES = /[□☐■◻⬜▢_#]/g;
 const HAS_BOX = /[□☐■◻⬜▢_#]/;
 const WORD = /^[A-Za-z]+$/;
@@ -32,7 +41,7 @@ function parsePuzzleText(text, wordCount) {
 	const words = [];
 	const shape = [];
 	const clue = [];
-	for (const raw of String(text || '').replace(/\r/g, '').split('\n')) {
+	for (const raw of ungarbleBoxes(text).replace(/\r/g, '').split('\n')) {
 		const line = raw.trim();
 		if (!line) continue;
 		if (HAS_BOX.test(line)) {
@@ -129,4 +138,4 @@ function patternOf(answer) {
 	return String(answer || '').toUpperCase().replace(/[A-Z]/g, '□');
 }
 
-module.exports = { parsePuzzleText, answerPattern, checkAnswers, fillPattern, patternOf, lettersOf, PuzzleTextError };
+module.exports = { parsePuzzleText, ungarbleBoxes, answerPattern, checkAnswers, fillPattern, patternOf, lettersOf, PuzzleTextError };
